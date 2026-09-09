@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hodi - Học đi · Flashcard</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/flashcard.css">
+</head>
+<body>
+    <aside class="app-nav-sidebar" id="appNavSidebar" aria-label="Điều hướng ứng dụng">
+        <button class="app-nav-brand app-nav-brand-toggle" id="appNavToggle" type="button" aria-expanded="true" title="Thu gọn thanh điều hướng">
+            <span class="hodi-logo" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M3.5 5.5c2.9-1 5.9-.5 8.5 1.4v11.6c-2.6-1.7-5.6-2.1-8.5-1.1zM20.5 5.5c-2.9-1-5.9-.5-8.5 1.4v11.6c-2.6-1.7-5.6-2.1-8.5-1.1z" /></svg></span>
+            <b>Hodi</b>
+        </button>
+        <nav class="app-nav-links">
+            <a class="app-nav-link" href="index.html"><span>⌂</span><b>Trang chủ</b></a>
+            <a class="app-nav-link" href="mindmap.html"><span><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg></span><b>Mindmap</b></a>
+            <a class="app-nav-link active" href="flashcard.html"><span><svg class="flashcard-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg></span><b>Flashcard</b></a>
+        </nav>
+        <div class="app-nav-divider"></div>
+        <section class="library-panel" aria-label="Thư viện">
+            <div class="library-heading"><span class="library-title" data-i18n="library">Thư viện</span><button class="library-add-btn" id="addRootFile" type="button" title="Thêm tệp">＋</button></div>
+            <div class="library-tree" id="libraryTree"></div>
+        </section>
+        <div class="app-nav-divider"></div>
+        <section class="settings-panel" aria-label="Cài đặt">
+            <p class="settings-title" data-i18n="settings">Cài đặt</p>
+            <div class="setting-row"><span data-i18n="theme">Giao diện</span><div class="setting-segmented" role="group"><button class="setting-choice active" type="button" data-theme-choice="dark">☾</button><button class="setting-choice" type="button" data-theme-choice="light">☀</button></div></div>
+            <div class="setting-row"><span data-i18n="language">Ngôn ngữ</span><div class="setting-segmented" role="group"><button class="setting-choice active" type="button" data-language-choice="vi">VN</button><button class="setting-choice" type="button" data-language-choice="en">EN</button></div></div>
+        </section>
+    </aside>
+    <div class="app-topbar">
+        <a class="app-tab-btn" href="index.html">⌂ Trang chủ</a>
+        <a class="app-tab-btn" href="mindmap.html"><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg> Mindmap</a>
+        <a class="app-tab-btn active" href="flashcard.html"><svg class="flashcard-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg> Flashcard</a>
+    </div>
+    <div class="container" id="flashcardPage">
+        <div class="sidebar expanded" id="fcSidebar">
+            <div class="sidebar-header">
+                <div class="logo-area">
+                    <span class="logo-icon"><svg class="flashcard-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg></span>
+                    <span class="logo-text">Flashcard</span>
+                </div>
+            </div>
+            <div class="sidebar-body">
+                <div class="sidebar-icons" id="fcSidebarIcons">
+                    <button class="sidebar-icon-btn active" data-fctab="add" title="Thêm flashcard">
+                        📝<span class="tooltip">Thêm flashcard</span>
+                    </button>
+                    <button class="sidebar-icon-btn" data-fctab="list" title="Danh sách">
+                        📋<span class="tooltip">Danh sách</span>
+                    </button>
+                </div>
+                <div class="sidebar-content">
+                    <div class="tab-content" id="fctab-add" style="display:block;">
+                        <div class="section-title">📝 Paste câu hỏi &amp; đáp án</div>
+                        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:8px; line-height:1.5;">
+                            Định dạng: mỗi thẻ gồm 1 dòng <b>Q:</b> và 1 dòng <b>A:</b>, các thẻ cách nhau bằng dòng trống.
+                        </div>
+                        <textarea id="flashcardTextInput" style="min-height:220px;" placeholder="Q: Câu hỏi 1?
+A: Đáp án 1
+
+Q: Câu hỏi 2?
+A: Đáp án 2"></textarea>
+                        <button class="action-btn primary" onclick="generateFlashcardsFromText()">✨ Tạo flashcard</button>
+                        <div id="fcParsePreview" style="font-size:12.5px; margin-top:10px; line-height:1.5;"></div>
+                    </div>
+                    <div class="tab-content" id="fctab-list" style="display:none;">
+                        <div class="section-title">📋 Tất cả flashcard (<span id="fcCount">0</span>)</div>
+                        <div id="fcListContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="canvas-area" id="fcMainArea">
+            <div class="fc-toolbar">
+                <button class="control-btn" onclick="fcShuffle()" title="Xáo trộn">🔀</button>
+                <button class="control-btn" onclick="fcResetOrder()" title="Thứ tự gốc">↺</button>
+                <span class="fc-progress" id="fcProgress">0 / 0</span>
+                <button class="control-btn" onclick="fcShowStats()" title="Thống kê">📊</button>
+            </div>
+            <div class="fc-card-area" id="fcCardArea">
+                <div class="fc-empty" id="fcEmptyState">Chưa có flashcard nào.<br>Paste text ở sidebar bên trái để tạo bộ câu hỏi đầu tiên.</div>
+                <div class="fc-card" id="fcCard" style="display:none;">
+                    <div class="fc-card-label" id="fcCardLabel">CÂU HỎI</div>
+                    <div class="fc-card-text" id="fcCardText"></div>
+                    <div class="fc-card-hint" id="fcCardHint">👁️ Nhấn để xem đáp án</div>
+                    <div class="fc-linked-badge" id="fcLinkedBadge" style="display:none;">🔗 Đã link với node</div>
+                    <div class="fc-answer-input-area" id="fcAnswerInputArea">
+                        <textarea id="fcUserAnswer" placeholder="Nhập câu trả lời của bạn..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fcSubmitAnswer()}"></textarea>
+                        <div style="display:flex; gap:8px; justify-content:flex-end;">
+                            <button class="fc-submit-btn" onclick="fcSubmitAnswer()">✅ Nộp câu trả lời</button>
+                            <button class="fc-submit-btn" style="background:var(--panel-bg);color:var(--ink);border:1px solid var(--card-border);" onclick="fcSkipAnswer()">⏭️ Bỏ qua</button>
+                        </div>
+                        <div class="fc-answer-history" id="fcAnswerHistory"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="fc-nav" id="fcNav" style="display:none;">
+                <button class="control-btn" onclick="fcPrev()">← Trước</button>
+                <button class="control-btn" onclick="fcReveal()">👁️ Hiện đáp án</button>
+                <button class="control-btn" onclick="fcNext()">Sau →</button>
+                <button class="control-btn" onclick="fcEditCurrent()" title="Sửa">✏️</button>
+                <button class="control-btn" onclick="fcDeleteCurrent()" title="Xoá">🗑️</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="linkPickBanner" style="display:none;">
+        <span id="linkPickText"></span>
+        <button onclick="cancelPendingLink()">✕ Huỷ (Esc)</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/flashcard.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/homepage.js"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hodi - Học đi · Mindmap</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <aside class="app-nav-sidebar" id="appNavSidebar" aria-label="Điều hướng ứng dụng">
+        <button class="app-nav-brand app-nav-brand-toggle" id="appNavToggle" type="button" aria-expanded="true" title="Thu gọn thanh điều hướng">
+            <span class="hodi-logo" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M3.5 5.5c2.9-1 5.9-.5 8.5 1.4v11.6c-2.6-1.7-5.6-2.1-8.5-1.1zM20.5 5.5c-2.9-1-5.9-.5-8.5 1.4v11.6c2.6-1.7 5.6-2.1 8.5-1.1z" /></svg></span>
+            <b>Hodi</b>
+        </button>
+        <nav class="app-nav-links">
+            <a class="app-nav-link" href="index.html"><span>⌂</span><b>Trang chủ</b></a>
+            <a class="app-nav-link active" href="mindmap.html"><span><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg></span><b>Mindmap</b></a>
+            <a class="app-nav-link" href="flashcard.html"><span><svg class="flashcard-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg></span><b>Flashcard</b></a>
+        </nav>
+        <div class="app-nav-divider"></div>
+        <section class="library-panel" aria-label="Thư viện">
+            <div class="library-heading"><span class="library-title" data-i18n="library">Thư viện</span><button class="library-add-btn" id="addRootFile" type="button" title="Thêm tệp">＋</button></div>
+            <div class="library-tree" id="libraryTree"></div>
+        </section>
+        <div class="app-nav-divider"></div>
+        <section class="settings-panel" aria-label="Cài đặt">
+            <p class="settings-title" data-i18n="settings">Cài đặt</p>
+            <div class="setting-row"><span data-i18n="theme">Giao diện</span><div class="setting-segmented" role="group"><button class="setting-choice active" type="button" data-theme-choice="dark">☾</button><button class="setting-choice" type="button" data-theme-choice="light">☀</button></div></div>
+            <div class="setting-row"><span data-i18n="language">Ngôn ngữ</span><div class="setting-segmented" role="group"><button class="setting-choice active" type="button" data-language-choice="vi">VN</button><button class="setting-choice" type="button" data-language-choice="en">EN</button></div></div>
+        </section>
+    </aside>
+    <div class="app-topbar">
+        <a class="app-tab-btn" href="index.html">⌂ Trang chủ</a>
+        <a class="app-tab-btn active" href="mindmap.html"><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg> Mindmap</a>
+        <a class="app-tab-btn" href="flashcard.html"><svg class="flashcard-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg> Flashcard</a>
+    </div>
+    <div class="container" id="mindmapPage">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-area">
+                    <span class="logo-icon" id="sidebarToggle" title="Toggle sidebar"><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg></span>
+                    <span class="logo-text">Mindmap</span>
+                </div>
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" title="Close sidebar">✕</button>
+            </div>
+            <div class="sidebar-body">
+                <div class="sidebar-icons" id="sidebarIcons">
+                    <button class="sidebar-icon-btn active" data-tab="text" title="Text to Mindmap">
+                        📝<span class="tooltip">Text to Mindmap</span>
+                    </button>
+                    <button class="sidebar-icon-btn" data-tab="import" title="Import">
+                        📂<span class="tooltip">Import</span>
+                    </button>
+                    <button class="sidebar-icon-btn" data-tab="export" title="Export">
+                        💾<span class="tooltip">Export</span>
+                    </button>
+                </div>
+                <div class="sidebar-content" id="sidebarContent">
+                    <div class="tab-content" id="tab-text" style="display:block;">
+                        <div class="section-title">📝 Text to Mindmap</div>
+                        <textarea id="textInput" placeholder="Paste outline text here:&#10;Chủ đề trung tâm 📘&#10;  **Nhánh 1** 📊&#10;    Ý con 1.1&#10;    Ý con 1.2" style="min-height:150px;"></textarea>
+                        <button class="action-btn primary" onclick="importFromText(true)">🔄 Update</button>
+                        <div id="error-message" style="font-size:11px; color:var(--danger); margin-top:4px;"></div>
+                    </div>
+                    <div class="tab-content" id="tab-import" style="display:none;">
+                        <div class="section-title">📂 Import</div>
+                        <button class="action-btn" onclick="loadFromFile()">📂 Import JSON</button>
+                        <input type="file" id="fileInput" accept=".json" style="display:none;">
+                    </div>
+                    <div class="tab-content" id="tab-export" style="display:none;">
+                        <div class="section-title">💾 Export</div>
+                        <button class="action-btn" onclick="showSaveModal()">💾 Save as JSON</button>
+                        <button class="action-btn" onclick="startSnippingTool('image')">🖼️ Save as Image</button>
+                        <button class="action-btn" onclick="startSnippingTool('pdf')">📄 Save as PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="canvas-area" id="canvasArea">
+            <canvas id="canvas"></canvas>
+            <div class="selection-box" id="selectionBox"></div>
+            <div class="selection-count" id="selectionCount"></div>
+            <div class="controls">
+                <button class="control-btn" onclick="zoomIn()" title="Zoom in">+</button>
+                <div class="zoom-display" id="zoomDisplay">100%</div>
+                <button class="control-btn" onclick="zoomOut()" title="Zoom out">−</button>
+                <button class="control-btn" onclick="undo()" title="Undo">↶</button>
+                <button class="control-btn" onclick="redo()" title="Redo">↷</button>
+                <button class="control-btn" id="collapseToggleBtn" onclick="toggleCollapseAll()" title="Toggle collapse all">📂 All</button>
+            </div>
+            <div class="node-tooltip" id="nodeTooltip">
+                <img id="tooltipImage" src="" alt="Preview">
+                <div class="tooltip-text" id="tooltipText"></div>
+            </div>
+        </div>
+        <div id="right-panel" style="width:0px; display:flex; flex-direction:column; overflow:hidden; transition:width 0.25s ease;">
+            <div class="rp-header">
+                <h3 id="rp-title">🎨 Properties</h3>
+                <button class="rp-close" onclick="closeRightPanel()">✕</button>
+            </div>
+            <div class="rp-body" id="rightPanelBody"></div>
+        </div>
+    </div>
+
+    <div id="linkPickBanner" style="display:none;">
+        <span id="linkPickText"></span>
+        <button onclick="cancelPendingLink()">✕ Huỷ (Esc)</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/mindmap.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/homepage.js"></script>
+</body>
+</html>
