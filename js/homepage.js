@@ -395,6 +395,121 @@
 
     const cloudGrid = document.querySelector('.home-grid');
 
+    const setupDashboard = () => {
+        if (!cloudGrid) return;
+        const storageKey = 'visualmind-eisenhower-tasks';
+        const dashboard = document.createElement('section');
+        dashboard.className = 'learning-dashboard';
+        dashboard.innerHTML = `
+            <section class="todo-panel" aria-labelledby="todoTitle">
+                <div class="dashboard-panel-heading"><div><p class="dashboard-kicker">Hôm nay</p><h2 id="todoTitle">To-do list</h2></div><span class="task-count" data-task-count>0 việc</span></div>
+                <form class="todo-create-form" data-todo-form><input data-todo-input maxlength="160" placeholder="Thêm việc cần làm..." aria-label="Việc cần làm"><button type="submit">Thêm</button></form>
+                <div class="todo-inbox-list" data-task-list="inbox" aria-label="Việc chưa phân loại"></div>
+                <p class="todo-drop-hint">Kéo một việc vào ma trận để ưu tiên.</p>
+            </section>
+            <section class="eisenhower-panel" aria-labelledby="matrixTitle">
+                <div class="dashboard-panel-heading"><div><p class="dashboard-kicker">Ưu tiên công việc</p><h2 id="matrixTitle">Ma trận Eisenhower</h2></div><span class="matrix-help">Kéo & thả</span></div>
+                <div class="eisenhower-matrix">
+                    <div class="matrix-cell matrix-do"><div class="matrix-label"><span>Khẩn + Quan trọng</span><b>Làm ngay</b></div><div class="matrix-dropzone" data-task-list="do"></div></div>
+                    <div class="matrix-cell matrix-schedule"><div class="matrix-label"><span>Không khẩn + Quan trọng</span><b>Lên lịch</b></div><div class="matrix-dropzone" data-task-list="schedule"></div></div>
+                    <div class="matrix-cell matrix-delegate"><div class="matrix-label"><span>Khẩn + Không quan trọng</span><b>Uỷ quyền</b></div><div class="matrix-dropzone" data-task-list="delegate"></div></div>
+                    <div class="matrix-cell matrix-eliminate"><div class="matrix-label"><span>Không khẩn + Không quan trọng</span><b>Loại bỏ</b></div><div class="matrix-dropzone" data-task-list="eliminate"></div></div>
+                </div>
+            </section>`;
+        cloudGrid.parentElement.insertBefore(dashboard, cloudGrid);
+
+        const libraryHeading = document.createElement('div');
+        libraryHeading.className = 'dashboard-library-heading';
+        libraryHeading.innerHTML = '<div><p class="dashboard-kicker">Thư viện cloud</p><h2>Tất cả mindmap</h2></div><span>Được cập nhật gần đây</span>';
+        cloudGrid.parentElement.insertBefore(libraryHeading, cloudGrid);
+
+        const readTasks = () => {
+            try { return JSON.parse(localStorage.getItem(storageKey)) || []; } catch { return []; }
+        };
+        let tasks = readTasks().filter((task) => task && task.id && task.title);
+        const saveTasks = () => localStorage.setItem(storageKey, JSON.stringify(tasks));
+
+        const renderTasks = () => {
+            dashboard.querySelector('[data-task-count]').textContent = `${tasks.length} việc`;
+            dashboard.querySelectorAll('[data-task-list]').forEach((list) => {
+                const status = list.dataset.taskList;
+                const grouped = tasks.filter((task) => task.status === status);
+                list.innerHTML = '';
+                if (!grouped.length) {
+                    list.innerHTML = '<p class="todo-empty">Thả việc vào đây</p>';
+                    return;
+                }
+                grouped.forEach((task) => {
+                    const item = document.createElement('article');
+                    item.className = 'todo-item';
+                    item.draggable = true;
+                    item.dataset.taskId = task.id;
+                    item.innerHTML = '<span class="todo-grip" aria-hidden="true">⠿</span><span class="todo-item-title"></span><button type="button" data-delete-task aria-label="Xóa việc">×</button>';
+                    item.querySelector('.todo-item-title').textContent = task.title;
+                    list.appendChild(item);
+                });
+            });
+        };
+
+        dashboard.querySelector('[data-todo-form]').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const input = dashboard.querySelector('[data-todo-input]');
+            const title = input.value.trim();
+            if (!title) return;
+            tasks.unshift({ id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, title, status: 'inbox' });
+            saveTasks();
+            renderTasks();
+            input.value = '';
+            input.focus();
+        });
+
+        dashboard.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-delete-task]');
+            if (!button) return;
+            const item = button.closest('.todo-item');
+            tasks = tasks.filter((task) => task.id !== item.dataset.taskId);
+            saveTasks();
+            renderTasks();
+        });
+
+        dashboard.addEventListener('dragstart', (event) => {
+            const item = event.target.closest('.todo-item');
+            if (!item) return;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', item.dataset.taskId);
+            item.classList.add('is-dragging');
+        });
+        dashboard.addEventListener('dragend', (event) => {
+            const item = event.target.closest('.todo-item');
+            if (item) item.classList.remove('is-dragging');
+            dashboard.querySelectorAll('.is-drag-over').forEach((list) => list.classList.remove('is-drag-over'));
+        });
+        dashboard.addEventListener('dragover', (event) => {
+            const list = event.target.closest('[data-task-list]');
+            if (!list) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            list.classList.add('is-drag-over');
+        });
+        dashboard.addEventListener('dragleave', (event) => {
+            const list = event.target.closest('[data-task-list]');
+            if (list && !list.contains(event.relatedTarget)) list.classList.remove('is-drag-over');
+        });
+        dashboard.addEventListener('drop', (event) => {
+            const list = event.target.closest('[data-task-list]');
+            if (!list) return;
+            event.preventDefault();
+            const task = tasks.find((entry) => entry.id === event.dataTransfer.getData('text/plain'));
+            if (!task) return;
+            task.status = list.dataset.taskList;
+            saveTasks();
+            renderTasks();
+        });
+        renderTasks();
+    };
+
+    setupDashboard();
+
     let cloudRenderVersion = 0;
     const renderCloudMindmaps = async (user) => {
         if (!cloudGrid) return;

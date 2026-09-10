@@ -690,6 +690,164 @@ body.app-nav-collapsed .home-main {
     line-height: 1.4;
 }
 
+/* ===== LEARNING DASHBOARD ===== */
+.learning-dashboard {
+    display: grid;
+    grid-template-columns: minmax(250px, .75fr) minmax(440px, 1.45fr);
+    gap: 18px;
+    margin-bottom: 34px;
+}
+
+.todo-panel,
+.eisenhower-panel {
+    border: 1px solid var(--home-border);
+    border-radius: 14px;
+    background: var(--home-surface);
+    padding: 18px;
+}
+
+.dashboard-panel-heading,
+.dashboard-library-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.dashboard-panel-heading h2,
+.dashboard-library-heading h2 {
+    margin: 2px 0 0;
+    color: var(--home-text);
+    font-family: 'Sora', sans-serif;
+    font-size: 18px;
+}
+
+.dashboard-kicker {
+    margin: 0;
+    color: var(--home-orange-bright);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.task-count,
+.matrix-help,
+.dashboard-library-heading > span {
+    color: var(--home-muted);
+    font-size: 11px;
+}
+
+.task-count,
+.matrix-help {
+    padding: 5px 8px;
+    border: 1px solid var(--home-border);
+    border-radius: 999px;
+}
+
+.todo-create-form {
+    display: flex;
+    gap: 8px;
+    margin: 16px 0 12px;
+}
+
+.todo-create-form input {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 11px;
+    border: 1px solid var(--home-border);
+    border-radius: 8px;
+    outline: none;
+    background: transparent;
+    color: var(--home-text);
+    font: inherit;
+    font-size: 13px;
+}
+
+.todo-create-form input:focus { border-color: var(--home-orange); }
+
+.todo-create-form button {
+    border: 0;
+    border-radius: 8px;
+    padding: 0 13px;
+    background: var(--home-orange);
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.todo-inbox-list,
+.matrix-dropzone {
+    display: flex;
+    min-height: 54px;
+    flex-direction: column;
+    gap: 7px;
+    border-radius: 9px;
+    transition: background .15s ease, outline-color .15s ease;
+}
+
+.todo-inbox-list { padding: 2px; }
+
+.todo-item {
+    display: grid;
+    grid-template-columns: 16px 1fr 20px;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 8px;
+    border: 1px solid var(--home-border);
+    border-radius: 8px;
+    background: var(--home-surface-hover);
+    color: var(--home-text);
+    cursor: grab;
+    font-size: 12px;
+}
+
+.todo-item.is-dragging { opacity: .42; }
+.todo-grip { color: var(--home-muted); cursor: grab; font-size: 16px; line-height: 1; }
+.todo-item-title { overflow-wrap: anywhere; }
+.todo-item button { border: 0; background: transparent; color: var(--home-muted); cursor: pointer; font-size: 18px; line-height: 1; }
+.todo-item button:hover { color: #e85d04; }
+.todo-empty { margin: auto; color: var(--home-muted); font-size: 11px; text-align: center; }
+.todo-drop-hint { margin: 12px 2px 0; color: var(--home-muted); font-size: 11px; }
+
+.eisenhower-matrix {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.matrix-cell {
+    display: flex;
+    min-height: 125px;
+    flex-direction: column;
+    padding: 11px;
+    border: 1px solid var(--home-border);
+    border-radius: 10px;
+}
+
+.matrix-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.matrix-label span { color: var(--home-muted); font-size: 10px; }
+.matrix-label b { color: var(--home-text); font-size: 12px; }
+.matrix-do { background: rgba(222, 79, 69, .08); }
+.matrix-schedule { background: rgba(68, 139, 218, .08); }
+.matrix-delegate { background: rgba(227, 156, 47, .08); }
+.matrix-eliminate { background: rgba(125, 125, 125, .09); }
+.matrix-dropzone { flex: 1; padding: 2px; }
+.matrix-dropzone.is-drag-over,
+.todo-inbox-list.is-drag-over { outline: 2px dashed var(--home-orange); outline-offset: 2px; background: rgba(232, 93, 4, .08); }
+
+.dashboard-library-heading {
+    align-items: end;
+    margin: 0 0 16px;
+}
+
+@media (max-width: 980px) {
+    .learning-dashboard { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 720px) {
     .home-header {
         margin-left: 64px;
