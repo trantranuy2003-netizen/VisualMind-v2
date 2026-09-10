@@ -355,6 +355,8 @@
         let mindmap = { center: null, nodes: {}, nextId: 1, links: [], groups: [], flashcards: [], nextFlashcardId: 1 };
         let history = [];
         let historyIndex = -1;
+        let cloudAutosaveTimer = null;
+        let cloudSaveQueue = Promise.resolve();
 
         let canvas, ctx;
         let viewport = { x: 0, y: 0, zoom: 1 };
@@ -1387,7 +1389,35 @@
             history = history.slice(0, historyIndex);
             history.push(JSON.parse(JSON.stringify(mindmap)));
             if (history.length > 50) history.shift();
+            scheduleCloudAutosave();
         }
+
+        window.saveCurrentWorkToCloud = async function(silent) {
+            if (!mindmap.center && (!mindmap.flashcards || mindmap.flashcards.length === 0)) return true;
+            const title = sessionStorage.getItem('visualmind-cloud-title') || 'mindmap';
+            const dataSnapshot = JSON.parse(JSON.stringify(mindmap));
+            cloudSaveQueue = cloudSaveQueue.catch(() => true).then(async () => {
+                const user = await getCurrentUser();
+                return user ? saveMindmapToCloud(title, dataSnapshot) : true;
+            });
+            const saved = await cloudSaveQueue;
+            if (!silent) {
+                showToast(saved ? 'Đã tự động lưu thành công' : 'Không thể tự động lưu lên cloud.', saved ? 'success' : 'error');
+            }
+            return saved;
+        };
+
+        function scheduleCloudAutosave() {
+            clearTimeout(cloudAutosaveTimer);
+            cloudAutosaveTimer = setTimeout(() => window.saveCurrentWorkToCloud(true), 1200);
+        }
+
+        window.addEventListener('pagehide', () => {
+            if (cloudAutosaveTimer) {
+                clearTimeout(cloudAutosaveTimer);
+                window.saveCurrentWorkToCloud(true);
+            }
+        });
 
         function undo() {
             if (historyIndex > 0) { historyIndex--;
