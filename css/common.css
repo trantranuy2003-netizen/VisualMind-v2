@@ -648,6 +648,51 @@
             color: #fff;
             border-color: var(--accent);
         }
+        .control-btn.create-node-btn {
+            background: var(--root-color);
+            border-color: var(--root-color);
+            color: #fff;
+        }
+        .control-btn.create-node-btn:hover {
+            background: #4a6fcf;
+            border-color: #4a6fcf;
+        }
+        .canvas-node-hint {
+            position: absolute;
+            left: 18px;
+            bottom: 18px;
+            z-index: 50;
+            max-width: 290px;
+            padding: 9px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+            color: var(--ink-soft);
+            font-size: 12px;
+            box-shadow: var(--shadow);
+            pointer-events: none;
+        }
+        .text-to-mindmap-guide {
+            margin: 0 0 10px;
+            padding: 10px;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            background: var(--context-hover);
+            color: var(--ink-soft);
+            font-size: 11px;
+            line-height: 1.45;
+        }
+        .text-to-mindmap-guide strong { color: var(--ink); }
+        .text-to-mindmap-guide ol { margin: 5px 0 7px 18px; padding: 0; }
+        .text-to-mindmap-guide pre {
+            margin: 0;
+            padding: 7px;
+            overflow-x: auto;
+            border-radius: 6px;
+            background: var(--panel-bg);
+            color: var(--ink);
+            font: 10px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
 
         .zoom-display {
             font-size: 11px;

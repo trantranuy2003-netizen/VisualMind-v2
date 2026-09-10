@@ -59,6 +59,19 @@
                 <div class="sidebar-content" id="sidebarContent">
                     <div class="tab-content" id="tab-text" style="display:block;">
                         <div class="section-title">📝 Text to Mindmap</div>
+                        <div class="text-to-mindmap-guide">
+                            <strong>Cách viết nhanh</strong>
+                            <ol>
+                                <li>Dòng đầu tiên là chủ đề trung tâm.</li>
+                                <li>Thụt vào 2 khoảng trắng cho mỗi cấp nhánh.</li>
+                                <li>Dùng <code>**Tên nhánh**</code> để in đậm (không bắt buộc).</li>
+                            </ol>
+                            <pre>Du lịch Đà Nẵng
+  **Lịch trình**
+    Ngày 1
+    Ngày 2
+  Chi phí</pre>
+                        </div>
                         <textarea id="textInput" placeholder="Paste outline text here:&#10;Chủ đề trung tâm 📘&#10;  **Nhánh 1** 📊&#10;    Ý con 1.1&#10;    Ý con 1.2" style="min-height:150px;"></textarea>
                         <button class="action-btn primary" onclick="importFromText(true)">🔄 Update</button>
                         <div id="error-message" style="font-size:11px; color:var(--danger); margin-top:4px;"></div>
@@ -81,7 +94,9 @@
             <canvas id="canvas"></canvas>
             <div class="selection-box" id="selectionBox"></div>
             <div class="selection-count" id="selectionCount"></div>
+            <div class="canvas-node-hint">Chọn một node rồi bấm <b>+ Thêm node</b> để tạo nhánh mới.</div>
             <div class="controls">
+                <button class="control-btn create-node-btn" onclick="addNodeFromToolbar()" title="Thêm node vào nhánh đang chọn">＋ Thêm node</button>
                 <button class="control-btn" onclick="zoomIn()" title="Zoom in">+</button>
                 <div class="zoom-display" id="zoomDisplay">100%</div>
                 <button class="control-btn" onclick="zoomOut()" title="Zoom out">−</button>

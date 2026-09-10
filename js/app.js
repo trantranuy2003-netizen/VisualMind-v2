@@ -2206,6 +2206,15 @@
             render();
         }
 
+        function addNodeFromToolbar() {
+            const parentId = selection.nodeId || mindmap.center;
+            if (parentId) {
+                addChildNode(parentId);
+                return;
+            }
+            addFreeNode();
+        }
+
         function addFreeNode() {
             const centerWorldX = -viewport.x / viewport.zoom;
             const centerWorldY = -viewport.y / viewport.zoom;
