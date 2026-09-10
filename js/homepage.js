@@ -415,16 +415,25 @@
         mindmaps.forEach((mindmap) => {
             const card = document.createElement('a');
             card.className = 'project-card';
-            card.href = 'mindmap.html';
+            const isFlashcardOnly = !mindmap.data?.center && (mindmap.data?.flashcards || []).length > 0;
+            card.href = `${isFlashcardOnly ? 'flashcard.html' : 'mindmap.html'}?cloudId=${encodeURIComponent(mindmap.id)}`;
             const updatedAt = mindmap.updated_at
                 ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(mindmap.updated_at))
                 : '';
-            card.innerHTML = `<div class="project-thumbnail"><span class="thumbnail-map" aria-hidden="true"></span><span class="thumbnail-label">Mindmap</span></div>`;
+            const contentType = isFlashcardOnly ? 'Flashcard' : 'Mindmap';
+            card.innerHTML = `<div class="project-thumbnail"><span class="${isFlashcardOnly ? 'thumbnail-cards' : 'thumbnail-map'}" aria-hidden="true"></span><span class="thumbnail-label">${contentType}</span></div>`;
             const info = document.createElement('div');
             info.className = 'project-info';
-            info.innerHTML = `<span class="project-icon" aria-hidden="true">${mindmapIcon}</span><div><h2 class="project-title"></h2><p class="project-meta"></p></div>`;
+            info.innerHTML = `<span class="project-icon" aria-hidden="true">${isFlashcardOnly ? flashcardIcon : mindmapIcon}</span><div><h2 class="project-title"></h2><p class="project-meta"></p></div>`;
             info.querySelector('.project-title').textContent = mindmap.title;
-            info.querySelector('.project-meta').textContent = updatedAt ? `Mindmap · Cập nhật ${updatedAt}` : 'Mindmap';
+            const nodeCount = Object.keys(mindmap.data?.nodes || {}).length;
+            const cardCount = (mindmap.data?.flashcards || []).length;
+            const contentSummary = isFlashcardOnly
+                ? `${cardCount} thẻ`
+                : `${nodeCount} node${cardCount ? ` · ${cardCount} thẻ` : ''}`;
+            info.querySelector('.project-meta').textContent = updatedAt
+                ? `${contentType} · ${contentSummary} · Cập nhật ${updatedAt}`
+                : `${contentType} · ${contentSummary}`;
             card.appendChild(info);
             cloudGrid.appendChild(card);
         });

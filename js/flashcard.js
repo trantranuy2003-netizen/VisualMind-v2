@@ -557,3 +557,34 @@
             render();
         }
 
+        window.addEventListener('DOMContentLoaded', async () => {
+            const cloudId = new URLSearchParams(window.location.search).get('cloudId');
+            if (!cloudId) return;
+
+            const record = await loadMindmapFromCloudById(cloudId);
+            if (!record || !record.data) {
+                alert('Không thể tải flashcard từ cloud.');
+                return;
+            }
+
+            const data = record.data;
+            mindmap = {
+                center: data.center || null,
+                nodes: data.nodes || {},
+                nextId: data.nextId || 1,
+                links: data.links || [],
+                groups: data.groups || [],
+                flashcards: data.flashcards || [],
+                nextFlashcardId: data.nextFlashcardId || 1
+            };
+            if (!data.nextFlashcardId && mindmap.flashcards.length) {
+                mindmap.nextFlashcardId = Math.max(...mindmap.flashcards.map(card => card.id || 0)) + 1;
+            }
+            sessionStorage.setItem('visualmind-cloud-title', record.title);
+            fcOrder = mindmap.flashcards.map(card => card.id);
+            fcIndex = 0;
+            fcRevealed = false;
+            renderFlashcardStudy();
+            renderFlashcardList();
+        });
+

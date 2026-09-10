@@ -77,6 +77,28 @@ async function loadMindmapsFromCloud() {
     }
 }
 
+async function loadMindmapFromCloudById(id) {
+    if (!supabaseClient || !id) return null;
+
+    try {
+        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+        if (sessionError) throw sessionError;
+        const user = session?.user;
+        if (!user) return null;
+        const { data, error } = await supabaseClient
+            .from('hodi database')
+            .select('id, title, data, updated_at')
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+        if (error) throw error;
+        return data || null;
+    } catch (error) {
+        console.error('[VisualMind] loadMindmapFromCloudById failed:', error);
+        return null;
+    }
+}
+
 function showAuthModal() {
     if (document.getElementById('authModal')) return;
     const overlay = document.createElement('div');

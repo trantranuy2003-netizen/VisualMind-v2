@@ -437,8 +437,50 @@
           **Nhánh 3** 🌟
             Ý con 3.1`;
             document.getElementById('textInput').value = demoText;
-            setTimeout(() => importFromText(true), 100);
+            setTimeout(async () => {
+                const cloudId = new URLSearchParams(window.location.search).get('cloudId');
+                if (!cloudId) {
+                    importFromText(true);
+                    return;
+                }
+                const record = await loadMindmapFromCloudById(cloudId);
+                if (!record || !applyCloudMindmap(record.data)) {
+                    showToast('Không thể tải mindmap từ cloud.', 'error');
+                    return;
+                }
+                sessionStorage.setItem('visualmind-cloud-title', record.title);
+                showToast('Đã tải mindmap từ cloud.', 'success');
+            }, 100);
         });
+
+        function applyCloudMindmap(data) {
+            if (!data || typeof data !== 'object') return false;
+            mindmap = {
+                center: data.center || null,
+                nodes: data.nodes || {},
+                nextId: data.nextId || 1,
+                links: data.links || [],
+                groups: data.groups || [],
+                flashcards: data.flashcards || [],
+                nextFlashcardId: data.nextFlashcardId || 1
+            };
+            if (!data.nextFlashcardId && mindmap.flashcards.length) {
+                mindmap.nextFlashcardId = Math.max(...mindmap.flashcards.map(card => card.id || 0)) + 1;
+            }
+            history = [];
+            historyIndex = -1;
+            viewport = { x: 0, y: 0, zoom: 1 };
+            fcOrder = mindmap.flashcards.map(card => card.id);
+            fcIndex = 0;
+            fcRevealed = false;
+            updateZoomDisplay();
+            render();
+            if (appMode === 'flashcard') {
+                renderFlashcardStudy();
+                renderFlashcardList();
+            }
+            return true;
+        }
 
         function resizeCanvas() {
             const container = document.querySelector('.canvas-area');
