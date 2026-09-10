@@ -351,22 +351,41 @@
             const a = document.getElementById('fcEditAnswer').value.trim();
             if (!q) { alert('Câu hỏi không được để trống');
                 return; }
-            const payload = { type: 'flashcard', cardId, question: q, answer: a };
+            const payload = {
+                type: 'flashcard',
+                cardId,
+                question: q,
+                answer: a,
+                data: JSON.stringify(mindmap),
+                title: sessionStorage.getItem('visualmind-cloud-title') || 'flashcard'
+            };
             if (!await requireAuthForSave(payload)) return;
             saveFlashcardEdit(payload);
         }
 
         async function saveFlashcardEdit(payload) {
-            const card = mindmap.flashcards.find(c => c.id === payload.cardId);
+            let dataToSave = mindmap;
+            let card = mindmap.flashcards.find(c => c.id === payload.cardId);
+            if (!card && payload.data) {
+                try {
+                    dataToSave = JSON.parse(payload.data);
+                    card = (dataToSave.flashcards || []).find(c => c.id === payload.cardId);
+                } catch (error) {
+                    console.error('[VisualMind] Invalid pending flashcard data:', error);
+                }
+            }
             if (!card) return;
             card.question = payload.question;
             card.answer = payload.answer;
-            saveHistory();
-            closeFcEditModal();
-            renderFlashcardStudy();
-            renderFlashcardList();
-            const title = sessionStorage.getItem('visualmind-cloud-title') || 'flashcard';
-            const saved = await saveMindmapToCloud(title, mindmap);
+            if (dataToSave === mindmap) {
+                saveHistory();
+                closeFcEditModal();
+                renderFlashcardStudy();
+                renderFlashcardList();
+            }
+            const title = payload.title || sessionStorage.getItem('visualmind-cloud-title') || 'flashcard';
+            sessionStorage.setItem('visualmind-cloud-title', title);
+            const saved = await saveMindmapToCloud(title, dataToSave);
             showToast(saved ? 'Đã lưu thành công' : 'Không thể lưu lên cloud.', saved ? 'success' : 'error');
         }
 
