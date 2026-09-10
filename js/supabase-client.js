@@ -27,6 +27,49 @@ async function getCurrentUser() {
     return user || null;
 }
 
+async function saveMindmapToCloud(title, dataObject) {
+    const user = await getCurrentUser();
+    if (!supabaseClient || !user) return false;
+
+    try {
+        const table = supabaseClient.from('hodi database');
+        const { data: existing, error: findError } = await table
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('title', title)
+            .limit(1);
+        if (findError) throw findError;
+
+        const payload = { data: dataObject, updated_at: new Date().toISOString() };
+        const { error } = existing && existing.length
+            ? await table.update(payload).eq('id', existing[0].id)
+            : await table.insert({ ...payload, user_id: user.id, title });
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('[VisualMind] Could not save to cloud:', error);
+        return false;
+    }
+}
+
+async function loadMindmapsFromCloud() {
+    const user = await getCurrentUser();
+    if (!supabaseClient || !user) return [];
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('hodi database')
+            .select('id, title, data, updated_at')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('[VisualMind] Could not load from cloud:', error);
+        return [];
+    }
+}
+
 function showAuthModal() {
     if (document.getElementById('authModal')) return;
     const overlay = document.createElement('div');

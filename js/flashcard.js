@@ -356,16 +356,18 @@
             saveFlashcardEdit(payload);
         }
 
-        function saveFlashcardEdit(payload) {
+        async function saveFlashcardEdit(payload) {
             const card = mindmap.flashcards.find(c => c.id === payload.cardId);
             if (!card) return;
             card.question = payload.question;
             card.answer = payload.answer;
-            console.log('[VisualMind] Dữ liệu flashcard lẽ ra được lưu:', mindmap.flashcards);
             saveHistory();
             closeFcEditModal();
             renderFlashcardStudy();
             renderFlashcardList();
+            const title = sessionStorage.getItem('visualmind-cloud-title') || 'flashcard';
+            const saved = await saveMindmapToCloud(title, mindmap);
+            showToast(saved ? 'Đã lưu thành công' : 'Không thể lưu lên cloud.', saved ? 'success' : 'error');
         }
 
         consumePendingSave((payload) => {

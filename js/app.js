@@ -74,6 +74,40 @@
                 'theme-dark': '🌙 Dark',
                 'collapse-all': '📂 Collapse All',
                 'expand-all': '📂 Expand All',
+                'shortcut-help': '⌨️ Phím tắt',
+                'shortcut-title': 'Phím tắt Mindmap',
+                'sc-nav': 'Điều hướng',
+                'sc-arrows': '←→↑↓ Di chuyển node',
+                'sc-tab': 'Tab Thêm node con',
+                'sc-enter': 'Enter Sửa node',
+                'sc-f': 'F Fit toàn màn hình',
+                'sc-0': '0 Reset zoom 100%',
+                'sc-plus': '+ Zoom in',
+                'sc-minus': '− Zoom out',
+                'sc-question': '? Bảng phím tắt',
+                'sc-select': 'Chọn',
+                'sc-ctrl-a': 'Ctrl+A Chọn tất cả',
+                'sc-shift-click': 'Shift+Click Chọn nhiều',
+                'sc-shift-drag': 'Shift+Kéo Chọn vùng',
+                'sc-edit': 'Chỉnh sửa',
+                'sc-ctrl-z': 'Ctrl+Z Undo',
+                'sc-ctrl-y': 'Ctrl+Y Redo',
+                'sc-ctrl-c': 'Ctrl+C Copy',
+                'sc-ctrl-x': 'Ctrl+X Cut',
+                'sc-ctrl-v': 'Ctrl+V Paste',
+                'sc-ctrl-d': 'Ctrl+D Duplicate',
+                'sc-del': 'Delete Xoá node',
+                'sc-escape': 'Esc Bỏ chọn',
+                'sc-align': 'Canh chỉnh',
+                'sc-align-l': 'Ctrl+← Canh trái',
+                'sc-align-r': 'Ctrl+→ Canh phải',
+                'sc-align-t': 'Ctrl+↑ Canh trên',
+                'sc-align-b': 'Ctrl+↓ Canh dưới',
+                'sc-align-h': 'Ctrl+H Canh giữa H',
+                'sc-align-v': 'Ctrl+J Canh giữa V',
+                'sc-file': 'Tệp',
+                'sc-ctrl-s': 'Ctrl+S Lưu file',
+                'sc-ctrl-o': 'Ctrl+O Mở file',
             },
             en: {
                 'app-title': '🧠 Mindmap Builder',
@@ -149,6 +183,40 @@
                 'theme-dark': '🌙 Dark',
                 'collapse-all': '📂 Collapse All',
                 'expand-all': '📂 Expand All',
+                'shortcut-help': '⌨️ Shortcuts',
+                'shortcut-title': 'Mindmap Shortcuts',
+                'sc-nav': 'Navigation',
+                'sc-arrows': '←→↑↓ Move node',
+                'sc-tab': 'Tab Add child node',
+                'sc-enter': 'Enter Edit node',
+                'sc-f': 'F Fit to screen',
+                'sc-0': '0 Reset zoom 100%',
+                'sc-plus': '+ Zoom in',
+                'sc-minus': '− Zoom out',
+                'sc-question': '? Shortcut help',
+                'sc-select': 'Selection',
+                'sc-ctrl-a': 'Ctrl+A Select all',
+                'sc-shift-click': 'Shift+Click Multi-select',
+                'sc-shift-drag': 'Shift+Drag Box select',
+                'sc-edit': 'Edit',
+                'sc-ctrl-z': 'Ctrl+Z Undo',
+                'sc-ctrl-y': 'Ctrl+Y Redo',
+                'sc-ctrl-c': 'Ctrl+C Copy',
+                'sc-ctrl-x': 'Ctrl+X Cut',
+                'sc-ctrl-v': 'Ctrl+V Paste',
+                'sc-ctrl-d': 'Ctrl+D Duplicate',
+                'sc-del': 'Delete Delete node',
+                'sc-escape': 'Esc Deselect',
+                'sc-align': 'Alignment',
+                'sc-align-l': 'Ctrl+← Align left',
+                'sc-align-r': 'Ctrl+→ Align right',
+                'sc-align-t': 'Ctrl+↑ Align top',
+                'sc-align-b': 'Ctrl+↓ Align bottom',
+                'sc-align-h': 'Ctrl+H Center H',
+                'sc-align-v': 'Ctrl+J Center V',
+                'sc-file': 'File',
+                'sc-ctrl-s': 'Ctrl+S Save file',
+                'sc-ctrl-o': 'Ctrl+O Open file',
             }
         };
 
@@ -2487,11 +2555,14 @@
             // Make sure flashcards are included
             const json = JSON.stringify(mindmap, null, 2);
             if (!await requireAuthForSave({ type: 'mindmap', filename, json })) return;
+            const title = filename.replace(/\.json$/i, '');
+            sessionStorage.setItem('visualmind-cloud-title', title);
             saveMindmapJson(filename, json);
+            const saved = await saveMindmapToCloud(title, mindmap);
+            showToast(saved ? 'Đã lưu thành công' : 'Không thể lưu lên cloud. File JSON vẫn đã được tải về.', saved ? 'success' : 'error');
         }
 
         function saveMindmapJson(filename, json) {
-            console.log('[VisualMind] Dữ liệu mindmap lẽ ra được lưu:', JSON.parse(json));
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -2555,11 +2626,22 @@
                 el.style.color = type === 'success' ? '#16A34A' : '#EF4444';
                 setTimeout(() => { if (el.id === 'fcParsePreview') el.textContent = ''; }, 3000);
             } else {
-                alert(msg);
+                el.textContent = msg;
+                el.style.cssText = `position:fixed;right:24px;bottom:24px;z-index:3000;padding:12px 16px;border-radius:10px;color:#fff;background:${type === 'success' ? '#16A34A' : '#EF4444'};box-shadow:0 8px 24px rgba(0,0,0,.2);`;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
             }
         }
 
         consumePendingSave((payload) => {
-            if (payload.type === 'mindmap') saveMindmapJson(payload.filename, payload.json);
+            if (payload.type === 'mindmap') confirmCloudMindmapSave(payload);
         });
+
+        async function confirmCloudMindmapSave(payload) {
+            const title = payload.filename.replace(/\.json$/i, '');
+            sessionStorage.setItem('visualmind-cloud-title', title);
+            saveMindmapJson(payload.filename, payload.json);
+            const saved = await saveMindmapToCloud(title, JSON.parse(payload.json));
+            showToast(saved ? 'Đã lưu thành công' : 'Không thể lưu lên cloud. File JSON vẫn đã được tải về.', saved ? 'success' : 'error');
+        }
 

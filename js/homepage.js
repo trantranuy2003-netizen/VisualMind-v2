@@ -393,6 +393,46 @@
         });
     });
 
+    const cloudGrid = document.querySelector('.home-grid');
+
+    const renderCloudMindmaps = async () => {
+        if (!cloudGrid) return;
+        const user = await getCurrentUser();
+        if (!user) {
+            cloudGrid.innerHTML = '<p class="project-meta">Đăng nhập để xem các mindmap đã lưu trên cloud.</p>';
+            return;
+        }
+
+        const mindmaps = await loadMindmapsFromCloud();
+        if (!mindmaps.length) {
+            cloudGrid.innerHTML = '<p class="project-meta">Chưa có mindmap nào trên cloud. Hãy tạo và lưu mindmap đầu tiên của bạn.</p>';
+            return;
+        }
+
+        cloudGrid.innerHTML = '';
+        mindmaps.forEach((mindmap) => {
+            const card = document.createElement('a');
+            card.className = 'project-card';
+            card.href = 'mindmap.html';
+            const updatedAt = mindmap.updated_at
+                ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(mindmap.updated_at))
+                : '';
+            card.innerHTML = `<div class="project-thumbnail"><span class="thumbnail-map" aria-hidden="true"></span><span class="thumbnail-label">Mindmap</span></div>`;
+            const info = document.createElement('div');
+            info.className = 'project-info';
+            info.innerHTML = `<span class="project-icon" aria-hidden="true">${mindmapIcon}</span><div><h2 class="project-title"></h2><p class="project-meta"></p></div>`;
+            info.querySelector('.project-title').textContent = mindmap.title;
+            info.querySelector('.project-meta').textContent = updatedAt ? `Mindmap · Cập nhật ${updatedAt}` : 'Mindmap';
+            card.appendChild(info);
+            cloudGrid.appendChild(card);
+        });
+    };
+
+    if (cloudGrid) {
+        renderCloudMindmaps();
+        if (supabaseClient) supabaseClient.auth.onAuthStateChange(() => renderCloudMindmaps());
+    }
+
     setTheme(currentTheme);
     updateTranslations();
 })();
