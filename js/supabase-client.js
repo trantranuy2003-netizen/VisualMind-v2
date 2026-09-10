@@ -72,7 +72,7 @@ async function loadMindmapsFromCloud() {
         if (error) throw error;
         return data || [];
     } catch (error) {
-        console.error('[VisualMind] Could not load from cloud:', error);
+        console.error('[VisualMind] loadMindmapsFromCloud failed. Check RLS, table name, and query:', error);
         return [];
     }
 }
@@ -144,8 +144,9 @@ function updateAuthUI(user) {
 
 if (supabaseClient) {
     supabaseClient.auth.onAuthStateChange((_event, session) => {
-        updateAuthUI(session?.user || null);
-        if (session?.user) closeAuthModal();
+        const user = session?.user || null;
+        updateAuthUI(user);
+        document.dispatchEvent(new CustomEvent('visualmind-auth-change', { detail: { user } }));
+        if (user) closeAuthModal();
     });
-    getCurrentUser().then(updateAuthUI);
 }

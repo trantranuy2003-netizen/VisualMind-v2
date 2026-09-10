@@ -395,15 +395,17 @@
 
     const cloudGrid = document.querySelector('.home-grid');
 
-    const renderCloudMindmaps = async () => {
+    let cloudRenderVersion = 0;
+    const renderCloudMindmaps = async (user) => {
         if (!cloudGrid) return;
-        const user = await getCurrentUser();
+        const renderVersion = ++cloudRenderVersion;
         if (!user) {
             cloudGrid.innerHTML = '<p class="project-meta">Đăng nhập để xem các mindmap đã lưu trên cloud.</p>';
             return;
         }
 
         const mindmaps = await loadMindmapsFromCloud();
+        if (renderVersion !== cloudRenderVersion) return;
         if (!mindmaps.length) {
             cloudGrid.innerHTML = '<p class="project-meta">Chưa có mindmap nào trên cloud. Hãy tạo và lưu mindmap đầu tiên của bạn.</p>';
             return;
@@ -429,8 +431,20 @@
     };
 
     if (cloudGrid) {
-        renderCloudMindmaps();
-        if (supabaseClient) supabaseClient.auth.onAuthStateChange(() => renderCloudMindmaps());
+        document.addEventListener('visualmind-auth-change', (event) => {
+            renderCloudMindmaps(event.detail.user);
+        });
+        if (supabaseClient) {
+            supabaseClient.auth.getSession().then(({ data: { session }, error }) => {
+                if (error) {
+                    console.error('[VisualMind] Could not restore Supabase session for the home grid:', error);
+                }
+                renderCloudMindmaps(session?.user || null);
+            }).catch((error) => {
+                console.error('[VisualMind] Failed while restoring Supabase session for the home grid:', error);
+                renderCloudMindmaps(null);
+            });
+        }
     }
 
     setTheme(currentTheme);
