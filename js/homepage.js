@@ -433,9 +433,10 @@
         ]);
     }
 
-    function removeMindmapDocument(id) {
+    async function removeMindmapDocument(id) {
         const found = findNode(library, id);
         if (!found) return;
+        const title = found.node.name;
         found.siblings.splice(found.siblings.indexOf(found.node), 1);
         try {
             const documents = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}');
@@ -444,6 +445,11 @@
         } catch { /* The library entry is still removed if draft data is unavailable. */ }
         save();
         renderTree();
+        // Cloud deletion is best-effort: a network/RLS issue must never prevent
+        // the user from removing the local document from the interface.
+        if (typeof deleteMindmapFromCloud === 'function') {
+            await deleteMindmapFromCloud(title);
+        }
     }
 
     function renderDashboardLibrary() {
@@ -509,7 +515,7 @@
         const libraryHeading = document.createElement('div');
         libraryHeading.className = 'dashboard-library-heading';
         libraryHeading.innerHTML = '<div><p class="dashboard-kicker">Thư viện</p><h2>Tất cả mindmap</h2></div><span>Được cập nhật gần đây</span>';
-        cloudGrid.parentElement.insertBefore(libraryHeading, cloudGrid);
+        // Mindmaps are managed from the left Library tree, not duplicated on the dashboard.
 
         const readTasks = () => {
             try { return JSON.parse(localStorage.getItem(storageKey)) || []; } catch { return []; }
@@ -609,6 +615,10 @@
     };
 
     setupDashboard();
+    if (cloudGrid) {
+        cloudGrid.remove();
+        dashboardGrid = null;
+    }
 
     let cloudRenderVersion = 0;
     const renderCloudMindmaps = async (user) => {

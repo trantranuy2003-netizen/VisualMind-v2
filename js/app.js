@@ -653,15 +653,16 @@
             const fontWeight = isCenter ? '800' : depth === 1 ? '700' : '500';
             const fontFamily = depth <= 1 ? "'Sora', 'Noto Sans', sans-serif" : "'Inter', 'Noto Sans', sans-serif";
             const words = buildRichWords(node.text || '', node.bold || false, node.italic || false, node.underline ||
-                false);
+                false, node.textStyles || []);
             const lines = layoutRichLines(words, width - 14, fontSize, fontFamily, fontWeight);
             let h = Math.max(1, lines.length) * (fontSize + 4) + 26;
             if (node.icon) h += fontSize + 6;
             return Math.max(56, h);
         }
 
-        function buildRichWords(text, boldOverride, italicOverride, underlineOverride) {
+        function buildRichWords(text, boldOverride, italicOverride, underlineOverride, textStyles = []) {
             const rawLines = (text || '').split('\n');
+            let characterOffset = 0;
             return rawLines.map(rawLine => {
                 let bullet = false;
                 let content = rawLine;
@@ -669,42 +670,68 @@
                 if (bulletMatch) { bullet = true;
                     content = bulletMatch[1]; }
                 const words = [];
-                const segments = parseRichSegments(content);
+                const contentOffset = characterOffset + (rawLine.length - content.length);
+                const segments = textStyles.length ? getStyleRangeSegments(content, contentOffset, textStyles) : parseRichSegments(content);
                 segments.forEach(seg => {
                     const isBold = seg.bold || boldOverride;
                     seg.text.split(' ').forEach(w => {
                         if (w === '') return;
-                        words.push({ text: w, bold: isBold, highlight: seg.highlight, italic: italicOverride,
-                            underline: underlineOverride });
+                        words.push({ text: w, bold: isBold, highlight: seg.highlight, italic: seg.italic || italicOverride,
+                            underline: seg.underline || underlineOverride, strike: seg.strike || false, textColor: seg.textColor || null });
                     });
                 });
+                characterOffset += rawLine.length + 1;
                 return { bullet, words };
             });
         }
 
+        function getStyleRangeSegments(text, offset, ranges) {
+            if (!text) return [{ text: '', bold: false, italic: false, underline: false, strike: false, highlight: false }];
+            const segments = [];
+            let active = null;
+            for (let index = 0; index < text.length; index++) {
+                const style = { bold: false, italic: false, underline: false, strike: false, highlight: false, textColor: null };
+                ranges.forEach((range) => {
+                    if (offset + index >= range.start && offset + index < range.end) {
+                        Object.keys(style).forEach((key) => {
+                            if (range[key] !== undefined) style[key] = range[key];
+                        });
+                    }
+                });
+                const signature = JSON.stringify(style);
+                if (!active || active.signature !== signature) {
+                    active = { ...style, text: text[index], signature };
+                    segments.push(active);
+                } else active.text += text[index];
+            }
+            return segments;
+        }
+
         function parseRichSegments(text) {
             const out = [];
-            const regex = /\*\*(.+?)\*\*|==(.+?)==/g;
+            const regex = /\*\*(.+?)\*\*|__(.+?)__|\+\+(.+?)\+\+|~~(.+?)~~|==(.+?)==|\{\{(#[0-9a-f]{6})\|(.+?)\}\}/gi;
             let lastIndex = 0,
                 m;
             while ((m = regex.exec(text)) !== null) {
                 if (m.index > lastIndex) out.push({ text: text.slice(lastIndex, m.index), bold: false,
-                    highlight: false });
+                    highlight: false, italic: false, underline: false, strike: false });
                 if (m[1] !== undefined) {
-                    const inner = m[1];
-                    const nested = inner.match(/^==(.+)==$/);
-                    out.push(nested ? { text: nested[1], bold: true, highlight: true } : { text: inner, bold: true,
-                        highlight: false });
+                    out.push({ text: m[1], bold: true, highlight: false, italic: false, underline: false, strike: false });
+                } else if (m[2] !== undefined) {
+                    out.push({ text: m[2], bold: false, highlight: false, italic: true, underline: false, strike: false });
+                } else if (m[3] !== undefined) {
+                    out.push({ text: m[3], bold: false, highlight: false, italic: false, underline: true, strike: false });
+                } else if (m[4] !== undefined) {
+                    out.push({ text: m[4], bold: false, highlight: false, italic: false, underline: false, strike: true });
+                } else if (m[5] !== undefined) {
+                    out.push({ text: m[5], bold: false, highlight: true, italic: false, underline: false, strike: false });
                 } else {
-                    const inner = m[2];
-                    const nested = inner.match(/^\*\*(.+)\*\*$/);
-                    out.push(nested ? { text: nested[1], bold: true, highlight: true } : { text: inner, bold: false,
-                        highlight: true });
+                    out.push({ text: m[7], bold: false, highlight: false, italic: false, underline: false, strike: false, textColor: m[6] });
                 }
                 lastIndex = regex.lastIndex;
             }
             if (lastIndex < text.length) out.push({ text: text.slice(lastIndex), bold: false, highlight: false });
-            if (out.length === 0) out.push({ text: text, bold: false, highlight: false });
+            if (out.length === 0) out.push({ text: text, bold: false, highlight: false, italic: false, underline: false, strike: false });
             return out;
         }
 
@@ -743,7 +770,7 @@
                     }
                     const gap2 = current.length ? spaceWidth : 0;
                     current.push({ text: w.text, bold: w.bold, highlight: w.highlight, italic: w.italic,
-                        underline: w.underline, x: cursorX + gap2, width: width });
+                        underline: w.underline, strike: w.strike, textColor: w.textColor, x: cursorX + gap2, width: width });
                     cursorX += gap2 + width;
                 });
                 if (current.length) flush();
@@ -784,7 +811,7 @@
                     if (w.italic) fontStyle += 'italic ';
                     let weight = w.bold ? '800' : baseWeight;
                     ctx.font = `${fontStyle}${weight} ${fontSize}px ${fontFamily}`;
-                    ctx.fillStyle = textColor;
+                    ctx.fillStyle = w.textColor || textColor;
                     ctx.fillText(w.text, startX + w.x, y);
                     if (w.underline) {
                         const metrics = ctx.measureText(w.text);
@@ -794,6 +821,14 @@
                         ctx.beginPath();
                         ctx.moveTo(startX + w.x, y + fontSize / 2 + 2);
                         ctx.lineTo(startX + w.x + textWidth, y + fontSize / 2 + 2);
+                        ctx.stroke();
+                    }
+                    if (w.strike) {
+                        ctx.strokeStyle = textColor;
+                        ctx.lineWidth = 1.2;
+                        ctx.beginPath();
+                        ctx.moveTo(startX + w.x, y);
+                        ctx.lineTo(startX + w.x + w.width, y);
                         ctx.stroke();
                     }
                 });
@@ -1053,7 +1088,7 @@
                 ctx.fill();
             }
 
-            ctx.strokeStyle = isSelected ? '#3B82F6' : 'rgba(31,37,68,0.10)';
+            ctx.strokeStyle = isSelected ? '#3B82F6' : (node.borderColor || 'rgba(31,37,68,0.10)');
             ctx.lineWidth = (isSelected ? 2.5 : 1.2) / viewport.zoom;
             roundRectPath(x, y, width, height, radius);
             ctx.stroke();
@@ -1096,7 +1131,7 @@
             }
 
             const richWords = buildRichWords(displayText, node.bold || false, node.italic || false, node.underline ||
-                false);
+                false, node.textStyles || []);
             const richLines = layoutRichLines(richWords, width - 14, node.fontSize, fontFamily, fontWeight);
             drawRichLines(richLines, node, textY, node.fontSize, fontFamily, fontWeight, effectiveTextColor,
                 node.highlightColor || DEFAULT_HIGHLIGHT_COLOR);
@@ -1728,8 +1763,15 @@
         }
 
         // ============ RIGHT PANEL ============
+        // Flip this back to true when the full Node Properties panel is ready to return.
+        const NODE_PROPERTIES_PANEL_ENABLED = false;
+
         function showRightPanel(nodeId) {
             const panel = document.getElementById('right-panel');
+            if (!NODE_PROPERTIES_PANEL_ENABLED) {
+                panel.style.width = '0px';
+                return;
+            }
             const node = mindmap.nodes[nodeId];
             if (!node) return;
             document.getElementById('rp-title').textContent = node.isTable ? '📊 Table Properties' : t('rp-title-props');
@@ -2040,7 +2082,7 @@
         function updateNodeProperty(nodeId, prop, value) {
             const node = mindmap.nodes[nodeId];
             if (!node) return;
-            const COLOR_PROPS = ['color', 'textColor', 'highlightColor'];
+            const COLOR_PROPS = ['color', 'borderColor', 'textColor', 'highlightColor'];
             const isBatch = COLOR_PROPS.includes(prop) && selection.selectedIds.length > 1 && selection.selectedIds
                 .includes(nodeId);
             const targetIds = isBatch ? selection.selectedIds : [nodeId];

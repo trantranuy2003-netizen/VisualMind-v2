@@ -94,6 +94,23 @@ async function renameMindmapInCloud(id, title) {
     }
 }
 
+async function deleteMindmapFromCloud(title) {
+    const user = await getCurrentUser();
+    if (!supabaseClient || !user || !title) return false;
+    try {
+        const { error } = await supabaseClient
+            .from('hodi database')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('title', title);
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('[VisualMind] Could not delete mindmap from cloud:', error);
+        return false;
+    }
+}
+
 async function loadMindmapFromCloudById(id) {
     if (!supabaseClient || !id) return null;
 

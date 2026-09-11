@@ -1,13 +1,166 @@
         // ============ INLINE EDIT ============
+        let inlineEditToolbar = null;
+
+        function applySelectedTextFormat(node, textarea, marker) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            if (start === end) return;
+            const styleKey = { '**': 'bold', '__': 'italic', '++': 'underline', '~~': 'strike', '==': 'highlight' }[marker];
+            if (!styleKey) return;
+            node.textStyles = node.textStyles || [];
+            const exact = node.textStyles.findIndex((range) => range.start === start && range.end === end && range[styleKey] === true);
+            if (exact >= 0) node.textStyles.splice(exact, 1);
+            else node.textStyles.push({ start, end, [styleKey]: true });
+            textarea.focus();
+        }
+
+        function applySelectedTextColor(node, textarea, color) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            if (start === end) return;
+            node.textStyles = (node.textStyles || []).filter((range) => !(range.start === start && range.end === end && range.textColor));
+            node.textStyles.push({ start, end, textColor: color });
+            textarea.focus();
+        }
+
+        function shiftTextStyleRanges(node, before, after) {
+            if (!node.textStyles?.length || before === after) return;
+            let prefix = 0;
+            while (prefix < before.length && prefix < after.length && before[prefix] === after[prefix]) prefix++;
+            let oldSuffix = before.length, newSuffix = after.length;
+            while (oldSuffix > prefix && newSuffix > prefix && before[oldSuffix - 1] === after[newSuffix - 1]) { oldSuffix--; newSuffix--; }
+            const delta = after.length - before.length;
+            node.textStyles = node.textStyles.map((range) => {
+                if (range.end <= prefix) return range;
+                if (range.start >= oldSuffix) return { ...range, start: range.start + delta, end: range.end + delta };
+                return { ...range, end: Math.max(range.start, range.end + delta) };
+            }).filter((range) => range.end > range.start);
+        }
+
+        function toggleSelectedBullets(textarea) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            if (start === end) return;
+            const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
+            const nextBreak = textarea.value.indexOf('\n', end);
+            const lineEnd = nextBreak === -1 ? textarea.value.length : nextBreak;
+            const lines = textarea.value.slice(lineStart, lineEnd).split('\n');
+            const removeBullets = lines.every((line) => /^\s*•\s+/.test(line));
+            const updated = lines.map((line) => removeBullets ? line.replace(/^(\s*)•\s+/, '$1') : `${line.match(/^\s*/)[0]}• ${line.trimStart()}`);
+            textarea.setRangeText(updated.join('\n'), lineStart, lineEnd, 'select');
+            textarea.focus();
+        }
+
+        function createMiniEditPropertiesPanel(node, textarea, screenX, screenY, screenW) {
+            const panel = document.createElement('div');
+            panel.className = 'node-mini-properties-panel';
+            panel.style.left = `${Math.min(window.innerWidth - 270, Math.max(8, screenX + screenW + 8))}px`;
+            panel.style.top = `${Math.max(8, screenY - 48)}px`;
+            panel.innerHTML = `
+                <label title="Fill color">Fill<input type="color" data-fill value="${toHex(node.color || '#94A3B8')}"></label>
+                <label title="Line color">Line<input type="color" data-line value="${toHex(node.borderColor || '#1F2544')}"></label>
+                <span class="node-mini-divider"></span>
+                <button type="button" data-font="-" title="Smaller text">A−</button>
+                <button type="button" data-font="+" title="Larger text">A+</button>
+                <span class="node-mini-divider"></span>
+                <button type="button" data-format="**" title="Bold"><b>B</b></button>
+                <button type="button" data-format="__" title="Italic"><i>I</i></button>
+                <button type="button" data-format="++" title="Underline"><u>U</u></button>
+                <button type="button" data-format="~~" title="Strikethrough"><s>S</s></button>
+                <button type="button" data-format="==" title="Highlight">H</button>
+                <textarea data-comment placeholder="Comment / note…">${escapeHtml(node.comment || '')}</textarea>`;
+            const pastelColors = ['#FFB6B9', '#FFC9A9', '#FFF3B0', '#B5EAD7', '#AEE8E4', '#A8D8EA', '#B3D9F2', '#D7BDE2', '#FFD6E0', '#C8F4C8'];
+            panel.innerHTML = `
+                <button type="button" class="node-mini-swatch" data-palette="fill" style="--swatch:${node.color || '#A8D8EA'}" title="Fill color"></button>
+                <button type="button" data-format="**" title="Bold"><b>B</b></button>
+                <button type="button" data-format="__" title="Italic"><i>I</i></button>
+                <button type="button" data-more title="More properties">•••</button>
+                <div class="node-mini-more" hidden>
+                    <button type="button" class="node-mini-swatch node-mini-text-swatch" data-palette="text" title="Text color">A</button>
+                    <button type="button" data-font="-" title="Smaller text">A−</button>
+                    <button type="button" data-font="+" title="Larger text">A+</button>
+                    <button type="button" data-align="left" title="Align left">◀</button>
+                    <button type="button" data-align="center" title="Align center">▲</button>
+                    <button type="button" data-align="right" title="Align right">▶</button>
+                    <button type="button" data-format="++" title="Underline"><u>U</u></button>
+                    <button type="button" data-format="~~" title="Strikethrough"><s>S</s></button>
+                    <button type="button" data-format="==" title="Highlight">H</button>
+                    <button type="button" data-bullet title="Bullet points">•</button>
+                </div>
+                <div class="node-mini-palette" hidden>${pastelColors.map((color) => `<button type="button" data-pastel="${color}" style="background:${color}" title="${color}"></button>`).join('')}</div>`;
+            let paletteTarget = 'fill';
+            document.body.appendChild(panel);
+            panel.addEventListener('input', (event) => {
+                const target = event.target;
+                if (target.matches('[data-fill]')) { node.color = target.value; textarea.style.background = target.value; }
+                if (target.matches('[data-line]')) node.borderColor = target.value;
+                render();
+            });
+            panel.addEventListener('click', (event) => {
+                const button = event.target.closest('button');
+                if (!button) return;
+                if (button.dataset.font) {
+                    node.fontSize = Math.max(8, Math.min(32, node.fontSize + (button.dataset.font === '+' ? 1 : -1)));
+                    textarea.style.fontSize = `${node.fontSize}px`;
+                    node.height = measureNodeHeight(node);
+                    render();
+                }
+                if (button.dataset.align) {
+                    node.textAlign = button.dataset.align;
+                    textarea.style.textAlign = node.textAlign;
+                    render();
+                }
+                if (button.dataset.format) applySelectedTextFormat(node, textarea, button.dataset.format);
+                if (button.hasAttribute('data-bullet')) toggleSelectedBullets(textarea);
+            });
+            panel.addEventListener('click', (event) => {
+                const button = event.target.closest('button');
+                if (!button) return;
+                const more = panel.querySelector('.node-mini-more');
+                const palette = panel.querySelector('.node-mini-palette');
+                if (button.hasAttribute('data-more')) {
+                    more.hidden = !more.hidden;
+                    palette.hidden = true;
+                }
+                if (button.dataset.palette) {
+                    paletteTarget = button.dataset.palette;
+                    more.hidden = true;
+                    palette.hidden = false;
+                }
+                if (button.dataset.pastel) {
+                    if (paletteTarget === 'fill') {
+                        node.color = button.dataset.pastel;
+                        textarea.style.background = node.color;
+                        panel.querySelector('[data-palette="fill"]').style.setProperty('--swatch', node.color);
+                    } else {
+                        applySelectedTextColor(node, textarea, button.dataset.pastel);
+                        panel.querySelector('[data-palette="text"]').style.color = button.dataset.pastel;
+                    }
+                    palette.hidden = true;
+                    render();
+                }
+            });
+            const closePopups = (event) => {
+                if (panel.contains(event.target) || event.target === textarea) return;
+                panel.querySelector('.node-mini-more').hidden = true;
+                panel.querySelector('.node-mini-palette').hidden = true;
+                document.removeEventListener('mousedown', closePopups);
+            };
+            document.addEventListener('mousedown', closePopups);
+            return panel;
+        }
         function startInlineEdit(nodeId) {
             closeInlineEdit();
             if (tableCellEdit) { tableCellEdit.remove();
                 tableCellEdit = null; }
             const node = mindmap.nodes[nodeId];
             if (!node || node.isTable) return;
+            const originalTextStyles = JSON.parse(JSON.stringify(node.textStyles || []));
             const rect = canvas.getBoundingClientRect();
-            const screenX = (node.x + canvas.width / 2 + viewport.x) * viewport.zoom + rect.left;
-            const screenY = (node.y + canvas.height / 2 + viewport.y) * viewport.zoom + rect.top;
+            // Zoom applies to world coordinates only. Canvas centre and pan are
+            // already expressed in pixels, so this overlay exactly covers node.
+            const screenX = node.x * viewport.zoom + canvas.width / 2 + viewport.x + rect.left;
+            const screenY = node.y * viewport.zoom + canvas.height / 2 + viewport.y + rect.top;
             const screenW = node.width * viewport.zoom;
             const screenH = node.height * viewport.zoom;
             const textarea = document.createElement('textarea');
@@ -15,12 +168,34 @@
             textarea.value = node.text;
             const align = node.textAlign || 'center';
             textarea.style.cssText =
-                `position:fixed; left:${screenX}px; top:${screenY}px; width:${screenW}px; height:${screenH}px; z-index:1000; border:2px solid var(--accent); border-radius:${node.id === mindmap.center ? '18px' : '13px'}; padding:4px 12px; font-size:${node.fontSize}px; font-family:'Inter','Noto Sans','Segoe UI',sans-serif; font-weight:${node.id === mindmap.center ? '800' : '500'}; text-align:${align}; box-shadow:0 4px 20px rgba(31,37,68,0.2); background:var(--panel-bg); color:var(--ink); resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.3;`;
+                `position:fixed; left:${screenX}px; top:${screenY}px; width:${screenW}px; height:${screenH}px; z-index:1000; border:2px solid var(--accent); border-radius:${node.id === mindmap.center ? '18px' : '13px'}; padding:4px 12px; font-size:${node.fontSize}px; font-family:'Inter','Noto Sans','Segoe UI',sans-serif; font-weight:${node.id === mindmap.center ? '800' : '500'}; text-align:${align}; box-shadow:0 4px 20px rgba(31,37,68,0.2); background:${node.color || 'var(--panel-bg)'}; color:${node.textColor || 'var(--ink)'}; resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.3;`;
             document.body.appendChild(textarea);
             inlineEdit = textarea;
+            const toolbar = createMiniEditPropertiesPanel(node, textarea, screenX, screenY, screenW);
+            if (false) { // legacy toolbar retained below temporarily for compatibility
+            const toolbar = document.createElement('div');
+            toolbar.className = 'node-inline-toolbar';
+            toolbar.style.left = `${Math.max(8, screenX)}px`;
+            toolbar.style.top = `${Math.max(8, screenY - 40)}px`;
+            toolbar.innerHTML = `
+                <button type="button" data-style="bold" class="${node.bold ? 'is-active' : ''}" title="Bold"><b>B</b></button>
+                <button type="button" data-style="italic" class="${node.italic ? 'is-active' : ''}" title="Italic"><i>I</i></button>
+                <button type="button" data-color="#1F2544" class="node-color-black" title="Black"></button>
+                <button type="button" data-color="#2563EB" class="node-color-blue" title="Blue"></button>
+                <button type="button" data-color="#EF4444" class="node-color-red" title="Red"></button>
+                <span></span><button type="button" data-add title="Add child">+</button>
+                ${node.id !== mindmap.center ? '<button type="button" data-delete title="Delete node">×</button>' : ''}`;
+            document.body.appendChild(toolbar);
+            }
+            inlineEditToolbar = toolbar;
             textarea.focus();
             textarea.select();
             let done = false;
+            let previousText = textarea.value;
+            textarea.addEventListener('input', () => {
+                shiftTextStyleRanges(node, previousText, textarea.value);
+                previousText = textarea.value;
+            });
 
             function commit() {
                 if (done) return;
@@ -29,23 +204,60 @@
                 node.height = measureNodeHeight(node);
                 textarea.remove();
                 inlineEdit = null;
+                toolbar.remove();
+                inlineEditToolbar = null;
                 saveHistory();
                 render();
                 if (selection.nodeId === nodeId) showRightPanel(nodeId);
             }
             textarea.addEventListener('keydown', e => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault();
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault();
                     commit(); } else if (e.key === 'Escape') { done = true;
                     textarea.remove();
                     inlineEdit = null;
+                    toolbar.remove();
+                    inlineEditToolbar = null;
+                    node.textStyles = originalTextStyles;
                     render(); }
             });
-            textarea.addEventListener('blur', commit);
+            if (false) {
+            toolbar.addEventListener('mousedown', (event) => event.preventDefault());
+            toolbar.addEventListener('click', (event) => {
+                const button = event.target.closest('button');
+                if (!button) return;
+                if (button.dataset.style) {
+                    node[button.dataset.style] = !node[button.dataset.style];
+                    button.classList.toggle('is-active', node[button.dataset.style]);
+                } else if (button.dataset.color) {
+                    node.textColor = button.dataset.color;
+                    toolbar.querySelectorAll('[data-color]').forEach((item) => item.classList.toggle('is-active', item === button));
+                } else if (button.hasAttribute('data-add')) {
+                    commit();
+                    addChildNode(nodeId);
+                } else if (button.hasAttribute('data-delete')) {
+                    done = true;
+                    textarea.remove();
+                    toolbar.remove();
+                    inlineEdit = null;
+                    inlineEditToolbar = null;
+                    deleteNode(nodeId);
+                }
+                render();
+            });
+            }
+            textarea.addEventListener('blur', () => setTimeout(() => {
+                if (!toolbar.contains(document.activeElement)) commit();
+            }, 0));
+            toolbar.addEventListener('focusout', () => setTimeout(() => {
+                if (!toolbar.contains(document.activeElement) && document.activeElement !== textarea) commit();
+            }, 0));
         }
 
         function closeInlineEdit() {
             if (inlineEdit) { inlineEdit.remove();
                 inlineEdit = null; }
+            if (inlineEditToolbar) { inlineEditToolbar.remove();
+                inlineEditToolbar = null; }
             if (tableCellEdit) { tableCellEdit.remove();
                 tableCellEdit = null; }
         }
