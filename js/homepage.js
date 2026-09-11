@@ -3,6 +3,7 @@
     // These preferences are shared by Home, Mindmap and Flashcard.
     const themeKey = 'visualmind-theme';
     const languageKey = 'visualmind-language';
+    const collapsedFoldersKey = 'visualmind-collapsed-folders';
     const treeElement = document.getElementById('libraryTree');
 
     const translations = {
@@ -65,7 +66,6 @@
         ] }
     ] }];
 
-    // Library normalization needs IDs during the initial getLibrary() call.
     const makeId = () => `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const normalizeNode = (node) => ({
@@ -74,15 +74,7 @@
         children: (node.children || []).map(normalizeNode)
     });
 
-    const normalizeLibrary = (nodes) => {
-        const normalized = nodes.map(normalizeNode);
-        if (normalized.length && normalized.every((node) => node.kind === 'mindmap' || node.kind === 'flashcard')) {
-            return [{ id: makeId(), name: 'Project', kind: 'folder', children: [{
-                id: makeId(), name: 'Sub-project', kind: 'folder', children: normalized
-            }] }];
-        }
-        return normalized;
-    };
+    const normalizeLibrary = (nodes) => nodes.map(normalizeNode);
 
     const getLibrary = () => {
         try {
@@ -93,7 +85,10 @@
             const restored = normalizeLibrary(withoutDemoSeed);
             // The mindmap document store is the recovery source of truth. Rebuild
             // missing Library entries so navigation can never hide saved work.
-            const documents = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}');
+            // An existing library is authoritative, including intentional deletions.
+            const documents = stored === null
+                ? JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}')
+                : {};
             const hasNode = (nodes, id) => nodes.some((node) => node.id === id || hasNode(node.children || [], id));
             let nextNumber = restored.reduce((count, node) => count + (node.kind === 'mindmap' ? 1 : 0), 0);
             Object.entries(documents).forEach(([id, document]) => {
@@ -116,6 +111,11 @@
     let activeDragId = null;
     let activeDropMode = null;
     let dashboardGrid = null;
+    const readCollapsedFolders = () => {
+        try { return new Set(JSON.parse(localStorage.getItem(collapsedFoldersKey) || '[]')); }
+        catch { return new Set(); }
+    };
+    let collapsedFolders = readCollapsedFolders();
 
     const text = (key) => translations[currentLanguage][key] || key;
     const save = () => {
@@ -191,7 +191,7 @@
                 row.draggable = true;
                 const hasChildren = node.children && node.children.length > 0;
                 row.innerHTML = `
-                    <button class="library-chevron ${hasChildren ? '' : 'is-empty'}" data-action="toggle" type="button" aria-label="Toggle"></button>
+                    <button class="library-chevron ${hasChildren ? '' : 'is-empty'} ${collapsedFolders.has(node.id) ? 'is-collapsed' : ''}" data-action="toggle" type="button" aria-label="Toggle" aria-expanded="${!collapsedFolders.has(node.id)}"></button>
                     ${isFolder ? '<div class="library-node-link library-folder-link">' : `<a class="library-node-link" href="${node.kind === 'flashcard' ? 'flashcard.html' : `mindmap.html?mapId=${encodeURIComponent(node.id)}`}">`}
                         <span class="library-file-icon ${isFolder ? 'library-folder-icon' : isMindmap ? 'library-mindmap-icon' : 'library-flashcard-icon'}" aria-hidden="true">${isMindmap ? mindmapIcon : isFolder ? '' : flashcardIcon}</span>
                         <span class="library-node-name" title="${node.name}">${node.name}</span>
@@ -202,6 +202,7 @@
                     const children = document.createElement('div');
                     children.className = 'library-children';
                     children.dataset.parentId = node.id;
+                    children.hidden = collapsedFolders.has(node.id);
                     children.appendChild(renderNodes(node.children, depth + 1));
                     fragment.appendChild(children);
                 }
@@ -380,6 +381,10 @@
             if (children && children.classList.contains('library-children')) {
                 const isCollapsed = children.toggleAttribute('hidden');
                 actionButton.classList.toggle('is-collapsed', isCollapsed);
+                actionButton.setAttribute('aria-expanded', String(!isCollapsed));
+                if (isCollapsed) collapsedFolders.add(nodeId);
+                else collapsedFolders.delete(nodeId);
+                localStorage.setItem(collapsedFoldersKey, JSON.stringify([...collapsedFolders]));
             }
         } else if (action === 'subproject') {
             askForNode('folder', (child) => { found.node.children.push(child); save(); renderTree(); });
@@ -699,6 +704,32 @@
             });
         }
     }
+
+    const syncSidebar = () => {
+        closeContextMenu();
+        library = getLibrary();
+        collapsedFolders = readCollapsedFolders();
+        const language = localStorage.getItem(languageKey) || 'vi';
+        const theme = localStorage.getItem(themeKey) || 'dark';
+        if (theme !== currentTheme) setTheme(theme);
+        if (language !== currentLanguage) {
+            currentLanguage = language;
+            document.dispatchEvent(new CustomEvent('visualmind-preferences', { detail: { language } }));
+            updateTranslations();
+        } else renderTree();
+        renderDashboardLibrary();
+    };
+    window.addEventListener('storage', (event) => {
+        if (event.storageArea !== localStorage) return;
+        if (event.key === null || [storageKey, languageKey, themeKey, collapsedFoldersKey].includes(event.key)) {
+            syncSidebar();
+        }
+    });
+    window.addEventListener('pageshow', syncSidebar);
+    window.addEventListener('focus', syncSidebar);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') syncSidebar();
+    });
 
     setTheme(currentTheme);
     updateTranslations();

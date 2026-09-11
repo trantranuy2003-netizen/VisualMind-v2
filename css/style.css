@@ -31,6 +31,12 @@ body {
 }
 
 /* ===== SHARED APPLICATION LEFT RAIL ===== */
+:where(.app-nav-sidebar, .app-nav-sidebar *) {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 .app-nav-sidebar {
     position: fixed;
     z-index: 1000;
@@ -43,6 +49,8 @@ body {
     background: #151515;
     border-right: 1px solid #303030;
     transition: width 0.25s ease;
+    font-size: 16px;
+    line-height: normal;
 }
 
 .app-nav-brand {
@@ -50,6 +58,7 @@ body {
     align-items: center;
     gap: 10px;
     height: 38px;
+    flex-shrink: 0;
     padding: 0 10px;
     color: #F3F3F3;
     font-family: 'Sora', sans-serif;
@@ -877,6 +886,17 @@ body.app-nav-collapsed .home-main {
 }
 
 @media (max-width: 720px) {
+    :root { --app-nav-width: 64px; }
+
+    .app-nav-sidebar { padding-right: 10px; padding-left: 10px; }
+    .app-nav-brand b,
+    .app-nav-link b,
+    .app-nav-sidebar .library-panel,
+    .app-nav-sidebar .settings-panel,
+    .app-nav-sidebar .app-nav-divider { display: none; }
+    .app-nav-brand,
+    .app-nav-link { justify-content: center; padding-right: 0; padding-left: 0; }
+
     .home-header {
         margin-left: 64px;
     }
@@ -1393,4 +1413,51 @@ body.app-nav-collapsed .library-panel,
 body.app-nav-collapsed .settings-panel,
 body.app-nav-collapsed .app-nav-divider {
     display: none;
+}
+
+/* Shared scrollbars for Home, Mindmap and Flashcard. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #777 transparent;
+}
+
+/* Native scrollbar styling can override the pseudo-elements in Chromium. */
+@supports selector(::-webkit-scrollbar) {
+    html,
+    body * {
+        scrollbar-width: auto;
+        scrollbar-color: auto;
+    }
+
+    .app-nav-sidebar:has(.library-panel),
+    .library-tree {
+        scrollbar-width: auto;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-track-piece,
+    ::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #777;
+        border-radius: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #999;
+    }
+
+    ::-webkit-scrollbar-button {
+        display: none;
+        width: 0;
+        height: 0;
+    }
 }

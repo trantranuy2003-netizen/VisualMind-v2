@@ -1,3 +1,22 @@
+        function getNodeResizeHandle(node, x, y) {
+            if (!node || node.id === mindmap.center) return null;
+            const size = 10 / viewport.zoom;
+            const inside = x >= node.x && x <= node.x + node.width && y >= node.y && y <= node.y + node.height;
+            if (!inside) return null;
+            const right = x >= node.x + node.width - size;
+            const bottom = y >= node.y + node.height - size;
+            if (right && bottom) return 'both';
+            if (Math.abs(y - node.y - node.height / 2) <= size) {
+                if (x <= node.x + size) return 'left';
+                if (right) return 'right';
+            }
+            if (Math.abs(x - node.x - node.width / 2) <= size) {
+                if (y <= node.y + size) return 'top';
+                if (bottom) return 'bottom';
+            }
+            return null;
+        }
+
         // ============ INLINE EDIT ============
         let inlineEditToolbar = null;
 
@@ -92,7 +111,7 @@
             document.body.appendChild(panel);
             panel.addEventListener('input', (event) => {
                 const target = event.target;
-                if (target.matches('[data-fill]')) { node.color = target.value; textarea.style.background = target.value; }
+                if (target.matches('[data-fill]')) { node.color = target.value;  }
                 if (target.matches('[data-line]')) node.borderColor = target.value;
                 render();
             });
@@ -130,7 +149,7 @@
                 if (button.dataset.pastel) {
                     if (paletteTarget === 'fill') {
                         node.color = button.dataset.pastel;
-                        textarea.style.background = node.color;
+
                         panel.querySelector('[data-palette="fill"]').style.setProperty('--swatch', node.color);
                     } else {
                         applySelectedTextColor(node, textarea, button.dataset.pastel);
@@ -165,12 +184,14 @@
             const screenH = node.height * viewport.zoom;
             const textarea = document.createElement('textarea');
             textarea.className = 'inline-edit';
+            textarea.dataset.nodeId = String(nodeId);
+            textarea.setAttribute('aria-label', 'N?i dung node');
             textarea.value = node.text;
             const align = node.textAlign || 'center';
-            textarea.style.cssText =
-                `position:fixed; left:${screenX}px; top:${screenY}px; width:${screenW}px; height:${screenH}px; z-index:1000; border:2px solid var(--accent); border-radius:${node.id === mindmap.center ? '18px' : '13px'}; padding:4px 12px; font-size:${node.fontSize}px; font-family:'Inter','Noto Sans','Segoe UI',sans-serif; font-weight:${node.id === mindmap.center ? '800' : '500'}; text-align:${align}; box-shadow:0 4px 20px rgba(31,37,68,0.2); background:${node.color || 'var(--panel-bg)'}; color:${node.textColor || 'var(--ink)'}; resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.3;`;
+            textarea.style.cssText = 'position:fixed; z-index:1000; box-sizing:border-box; border:0; outline:none; border-radius:0; box-shadow:none; background:transparent; resize:none; overflow:auto; white-space:pre-wrap; line-height:1.3; transform-origin:top left;';
             document.body.appendChild(textarea);
             inlineEdit = textarea;
+            render();
             const toolbar = createMiniEditPropertiesPanel(node, textarea, screenX, screenY, screenW);
             if (false) { // legacy toolbar retained below temporarily for compatibility
             const toolbar = document.createElement('div');
@@ -195,6 +216,7 @@
             textarea.addEventListener('input', () => {
                 shiftTextStyleRanges(node, previousText, textarea.value);
                 previousText = textarea.value;
+                render();
             });
 
             function commit() {
@@ -406,7 +428,15 @@
             } else if (selection.resizing && selection.nodeId) {
                 const node = mindmap.nodes[selection.nodeId];
                 if (node && node.id !== mindmap.center) {
-                    if (selection.resizeHandle === 'right') {
+                    if (selection.resizeHandle === 'left') {
+                        const right = node.x + node.width;
+                        node.x = Math.min(worldX, right - 60);
+                        node.width = right - node.x;
+                    } else if (selection.resizeHandle === 'top') {
+                        const bottom = node.y + node.height;
+                        node.y = Math.min(worldY, bottom - 40);
+                        node.height = bottom - node.y;
+                    } else if (selection.resizeHandle === 'right') {
                         node.width = Math.max(60, worldX - node.x);
                     } else if (selection.resizeHandle === 'bottom') {
                         node.height = Math.max(40, worldY - node.y);
@@ -447,18 +477,10 @@
                 .multiDragStart) {
                 const node = mindmap.nodes[selection.nodeId];
                 if (node) {
-                    const handleSize = 10 / viewport.zoom;
-                    const onRight = worldX > node.x + node.width - handleSize && worldX < node.x + node.width;
-                    const onBottom = worldY > node.y + node.height - handleSize && worldY < node.y + node.height;
-                    const onCorner = onRight && onBottom;
-                    const onRightEdge = onRight && worldY > node.y + node.height / 2 - handleSize && worldY < node.y +
-                        node.height / 2 + handleSize;
-                    const onBottomEdge = onBottom && worldX > node.x + node.width / 2 - handleSize && worldX < node.x +
-                        node.width / 2 + handleSize;
-                    if (onCorner) canvas.style.cursor = 'nwse-resize';
-                    else if (onRightEdge) canvas.style.cursor = 'ew-resize';
-                    else if (onBottomEdge) canvas.style.cursor = 'ns-resize';
-                    else canvas.style.cursor = 'grab';
+                    const handle = getNodeResizeHandle(node, worldX, worldY);
+                    canvas.style.cursor = handle === 'both' ? 'nwse-resize'
+                        : handle === 'left' || handle === 'right' ? 'ew-resize'
+                        : handle === 'top' || handle === 'bottom' ? 'ns-resize' : 'grab';
                 }
             } else if (!selection.nodeId) { canvas.style.cursor = 'grab'; }
         }
@@ -595,20 +617,11 @@
                     selection.selectedLink = null;
                     showRightPanel(clickedNode.id);
                     if (clickedNode.id !== mindmap.center) {
-                        const handleSize = 10 / viewport.zoom;
-                        const onRight = worldX > clickedNode.x + clickedNode.width - handleSize && worldX < clickedNode.x +
-                            clickedNode.width;
-                        const onBottom = worldY > clickedNode.y + clickedNode.height - handleSize && worldY < clickedNode.y +
-                            clickedNode.height;
-                        const onCorner = onRight && onBottom;
-                        const onRightEdge = onRight && worldY > clickedNode.y + clickedNode.height / 2 - handleSize &&
-                            worldY < clickedNode.y + clickedNode.height / 2 + handleSize;
-                        const onBottomEdge = onBottom && worldX > clickedNode.x + clickedNode.width / 2 - handleSize &&
-                            worldX < clickedNode.x + clickedNode.width / 2 + handleSize;
-                        if (onCorner) { selection.resizing = true;
-                            selection.resizeHandle = 'both'; } else if (onRightEdge) { selection.resizing = true;
-                            selection.resizeHandle = 'right'; } else if (onBottomEdge) { selection.resizing = true;
-                            selection.resizeHandle = 'bottom'; } else {
+                        const handle = getNodeResizeHandle(clickedNode, worldX, worldY);
+                        if (handle) {
+                            selection.resizing = true;
+                            selection.resizeHandle = handle;
+                        } else {
                             selection.dragging = true;
                             selection.dragOffset = { x: worldX - clickedNode.x, y: worldY - clickedNode.y };
                         }

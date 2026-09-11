@@ -1122,7 +1122,8 @@
             const fontFamily = depth <= 1 ? "'Sora', 'Noto Sans', sans-serif" : "'Inter', 'Noto Sans', sans-serif";
 
             let textY = y + height / 2;
-            let displayText = text;
+            const isEditing = inlineEdit?.dataset.nodeId === String(node.id);
+            let displayText = isEditing ? inlineEdit.value : text;
             if (icon) {
                 ctx.font = `${node.fontSize + 4}px sans-serif`;
                 ctx.fillText(icon, x + width / 2, textY - 8);
@@ -1133,13 +1134,30 @@
             const richWords = buildRichWords(displayText, node.bold || false, node.italic || false, node.underline ||
                 false, node.textStyles || []);
             const richLines = layoutRichLines(richWords, width - 14, node.fontSize, fontFamily, fontWeight);
-            drawRichLines(richLines, node, textY, node.fontSize, fontFamily, fontWeight, effectiveTextColor,
-                node.highlightColor || DEFAULT_HIGHLIGHT_COLOR);
+            if (isEditing) {
+                const rect = canvas.getBoundingClientRect();
+                Object.assign(inlineEdit.style, {
+                    left: `${x * viewport.zoom + canvas.width / 2 + viewport.x + rect.left}px`,
+                    top: `${y * viewport.zoom + canvas.height / 2 + viewport.y + rect.top}px`,
+                    width: `${width}px`, height: `${height}px`,
+                    transform: `scale(${viewport.zoom})`,
+                    padding: `${Math.max(0, (height - richLines.length * node.fontSize * 1.3) / 2 + (icon ? 4 : 0))}px 7px 0`,
+                    fontFamily, fontWeight: node.bold ? '800' : fontWeight,
+                    fontStyle: node.italic ? 'italic' : 'normal',
+                    fontSize: `${node.fontSize}px`,
+                    textAlign: node.textAlign || 'center', color: effectiveTextColor
+                });
+            } else {
+                drawRichLines(richLines, node, textY, node.fontSize, fontFamily, fontWeight, effectiveTextColor,
+                    node.highlightColor || DEFAULT_HIGHLIGHT_COLOR);
+            }
 
             if (isSelected && !isCenter) {
                 const handleSize = 6 / viewport.zoom;
                 ctx.fillStyle = '#3B82F6';
                 ctx.globalAlpha = 0.85;
+                ctx.fillRect(x, y + height / 2 - handleSize, handleSize, handleSize * 2);
+                ctx.fillRect(x + width / 2 - handleSize, y, handleSize * 2, handleSize);
                 ctx.fillRect(x + width - handleSize, y + height / 2 - handleSize, handleSize, handleSize * 2);
                 ctx.fillRect(x + width / 2 - handleSize, y + height - handleSize, handleSize * 2, handleSize);
                 ctx.fillRect(x + width - handleSize, y + height - handleSize, handleSize, handleSize);
@@ -1228,6 +1246,8 @@
                 const handleSize = 6 / viewport.zoom;
                 ctx.fillStyle = '#3B82F6';
                 ctx.globalAlpha = 0.85;
+                ctx.fillRect(x, y + height / 2 - handleSize, handleSize, handleSize * 2);
+                ctx.fillRect(x + width / 2 - handleSize, y, handleSize * 2, handleSize);
                 ctx.fillRect(x + width - handleSize, y + height / 2 - handleSize, handleSize, handleSize * 2);
                 ctx.fillRect(x + width / 2 - handleSize, y + height - handleSize, handleSize * 2, handleSize);
                 ctx.fillRect(x + width - handleSize, y + height - handleSize, handleSize, handleSize);
