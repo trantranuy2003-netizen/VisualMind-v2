@@ -33,15 +33,28 @@ function browser() {
             getSession: async () => ({ data: { session: null } })
         },
         from() {
-            const filters = [];
+            let filters = [];
+            let operation = null;
+            let payload = null;
+            const matches = row => filters.every(([key, value]) =>
+                (key === 'data->>visualmindDocumentId' ? row.data.visualmindDocumentId : row[key]) === value);
             return {
                 select() { return this; }, eq(key, value) { filters.push([key, value]); return this; },
+                async limit(count) { return { data: [...records.values()].filter(matches).slice(0, count), error: null }; },
                 order() {
                     return Promise.resolve(failRead ? { error: new Error('Offline') } : {
-                        data: [...records.values()].filter(row => filters.every(([key, value]) => row[key] === value))
+                        data: [...records.values()].filter(matches)
                     });
                 },
-                async upsert(row) { records.set(row.id, JSON.parse(JSON.stringify(row))); return { error: null }; }
+                insert(row) { operation = 'insert'; payload = row; filters = []; return this; },
+                update(row) { operation = 'update'; payload = row; filters = []; return this; },
+                async single() {
+                    assert.equal('id' in payload, false, 'Client must not supply an ID for the bigint identity column');
+                    const id = operation === 'insert' ? records.size + 1 : [...records.values()].find(matches)?.id;
+                    if (!id) return { error: new Error('No matching record') };
+                    records.set(id, JSON.parse(JSON.stringify({ ...payload, id })));
+                    return { data: { id }, error: null };
+                }
             };
         }
     };
@@ -89,6 +102,7 @@ function browser() {
     const changed = { center: 1, nodes: { 1: { text: 'Updated first map' } } };
     await normal.save('Same title', changed, 'map-a');
     assert.equal(records.size, 2, 'Repeated saves update by ID rather than creating duplicates');
+    assert.equal([...records.keys()].every(Number.isInteger), true, 'Cloud IDs are generated integers');
     assert.equal([...records.values()].find(row => row.data.visualmindDocumentId === 'map-b').data.nodes[1].text, 'Second map');
 
     normal.set('visualmind-local-mindmaps', { 'map-a': changed, 'map-b': second });
@@ -101,6 +115,9 @@ function browser() {
     normal.set('visualmind-dirty-mindmaps', { 'map-a': true });
     await normal.save('Same title', first, 'map-a');
     assert.equal(normal.get('visualmind-dirty-mindmaps')['map-a'], true);
+
+    await Promise.all([normal.save('Concurrent', first, 'map-c'), normal.save('Concurrent', second, 'map-c')]);
+    assert.equal([...records.values()].filter(row => row.data.visualmindDocumentId === 'map-c').length, 1, 'Concurrent migration and autosave share one record');
 
     failRead = true;
     await assert.rejects(incognito.strictRead());

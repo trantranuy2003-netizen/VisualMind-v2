@@ -661,7 +661,7 @@
         if (cloudSyncRunning) { cloudSyncRequested = true; return; }
         cloudSyncRunning = true;
         const version = ++cloudRenderVersion;
-        syncStatus.textContent = '?ang ??ng b? mindmap?';
+        syncStatus.textContent = 'Đang đồng bộ mindmap…';
         try {
             let records = await loadMindmapsFromCloud(true);
             if (version !== cloudRenderVersion) return;
@@ -697,10 +697,10 @@
             });
             localStorage.setItem(storageKey, JSON.stringify(library));
             renderTree();
-            syncStatus.textContent = '?? ??ng b? mindmap';
+            syncStatus.textContent = 'Đã đồng bộ mindmap';
         } catch (error) {
             console.error('[VisualMind] Library cloud sync failed:', error);
-            syncStatus.textContent = 'Ch?a ??ng b? ???c. B?n tr?n m?y v?n ???c gi?. B?m ?? th? l?i.';
+            syncStatus.textContent = `Chưa đồng bộ được: ${error.message}. Bản trên máy vẫn được giữ. Bấm để thử lại.`;
             syncStatus.onclick = () => renderCloudMindmaps(user);
         } finally {
             cloudSyncRunning = false;
@@ -715,7 +715,8 @@
         setTimeout(() => renderCloudMindmaps(event.detail.user), 0);
     });
     document.addEventListener('visualmind-cloud-save-status', event => {
-        syncStatus.textContent = event.detail.saved ? 'Đã lưu mindmap lên cloud' : 'Chưa lưu được lên cloud. Bản trên máy vẫn được giữ.';
+        syncStatus.textContent = event.detail.saved ? 'Đã lưu mindmap lên cloud'
+            : `Chưa lưu được lên cloud${event.detail.code ? ` (${event.detail.code})` : ''}: ${event.detail.message || 'Vui lòng thử lại'}. Bản trên máy vẫn được giữ.`;
     });
     window.addEventListener('online', () => {
         if (supabaseClient) supabaseClient.auth.getSession().then(({ data }) => renderCloudMindmaps(data.session?.user));
@@ -726,7 +727,7 @@
             return renderCloudMindmaps(data.session?.user);
         }).catch(error => {
             console.error('[VisualMind] Session restore failed:', error);
-            syncStatus.textContent = 'Kh?ng th? k?t n?i t?i kho?n. Vui l?ng t?i l?i trang.';
+            syncStatus.textContent = 'Không thể kết nối tài khoản. Vui lòng tải lại trang.';
         });
     }
 
