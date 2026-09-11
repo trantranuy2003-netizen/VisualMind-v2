@@ -65,6 +65,9 @@
         ] }
     ] }];
 
+    // Library normalization needs IDs during the initial getLibrary() call.
+    const makeId = () => `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
     const normalizeNode = (node) => ({
         ...node,
         kind: node.kind || node.type || 'mindmap',
@@ -135,8 +138,6 @@
         }
         return null;
     };
-
-    const makeId = () => `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const showInputDialog = (message, initialValue, callback) => {
         const overlay = document.createElement('div');
