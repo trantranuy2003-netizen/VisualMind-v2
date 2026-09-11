@@ -265,7 +265,7 @@
 
         function setTheme(theme) {
             currentTheme = theme;
-            document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : '');
+            document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
             document.querySelectorAll('.theme-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.theme === theme);
             });
@@ -355,6 +355,9 @@
         let mindmap = { center: null, nodes: {}, nextId: 1, links: [], groups: [], flashcards: [], nextFlashcardId: 1 };
         let history = [];
         let historyIndex = -1;
+        const localMindmapsKey = 'visualmind-local-mindmaps';
+        const lastMindmapKey = 'visualmind-last-mindmap-id';
+        let localMindmapId = null;
         let cloudAutosaveTimer = null;
         let cloudSaveQueue = Promise.resolve();
 
@@ -421,8 +424,8 @@
             document.addEventListener('keyup', handleKeyUp);
             document.addEventListener('click', closeContextMenu);
 
-            setTheme('light');
-            setLanguage('vi');
+            setTheme(localStorage.getItem('visualmind-theme') || 'dark');
+            setLanguage(localStorage.getItem('visualmind-language') || 'vi');
 
             const demoText = `Chủ đề trung tâm 📘
           **Nhánh 1** 📊
@@ -438,8 +441,18 @@
             Ý con 3.1`;
             document.getElementById('textInput').value = demoText;
             setTimeout(async () => {
-                const cloudId = new URLSearchParams(window.location.search).get('cloudId');
+                const params = new URLSearchParams(window.location.search);
+                const cloudId = params.get('cloudId');
                 if (!cloudId) {
+                    localMindmapId = params.get('mapId') || localStorage.getItem(lastMindmapKey) || `map-${Date.now()}`;
+                    localStorage.setItem(lastMindmapKey, localMindmapId);
+                    if (!params.get('mapId')) {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('mapId', localMindmapId);
+                        window.history.replaceState({}, '', url);
+                    }
+                    const localData = getLocalMindmap(localMindmapId);
+                    if (localData && applyCloudMindmap(localData)) return;
                     importFromText(true);
                     return;
                 }
@@ -481,6 +494,31 @@
             }
             return true;
         }
+
+        function getLocalMindmap(id) {
+            try { return JSON.parse(localStorage.getItem(localMindmapsKey) || '{}')[id] || null; }
+            catch { return null; }
+        }
+
+        function saveLocalMindmap() {
+            if (!localMindmapId || (!mindmap.center && !(mindmap.flashcards || []).length)) return;
+            try {
+                const records = JSON.parse(localStorage.getItem(localMindmapsKey) || '{}');
+                records[localMindmapId] = JSON.parse(JSON.stringify(mindmap));
+                localStorage.setItem(localMindmapsKey, JSON.stringify(records));
+                localStorage.setItem(lastMindmapKey, localMindmapId);
+            } catch (error) { console.warn('[VisualMind] Could not save local mindmap:', error); }
+        }
+
+        window.copyMindmapAIPrompt = async function() {
+            const prompt = currentLang === 'en'
+                ? `Turn the content below into an import-ready mindmap outline. Return plain text only; no explanation and no Markdown except **...** around branch names.\n\nRules:\n- First line: central topic.\n- Indent every level with exactly 2 spaces.\n- One concise branch per line (maximum 8 words).\n- At most 5 first-level branches and 4 children per branch.\n- Do not use numbered lists, bullets, or tables.\n\nContent to convert:\n[PASTE CONTENT HERE]`
+                : `Hãy chuyển nội dung dưới đây thành dàn ý mindmap có thể nhập trực tiếp. Chỉ trả về văn bản thuần, không giải thích, không Markdown ngoài **...** cho tên nhánh.\n\nQuy tắc:\n- Dòng đầu tiên: chủ đề trung tâm.\n- Mỗi cấp nhánh thụt vào đúng 2 dấu cách.\n- Mỗi nhánh một dòng, ngắn gọn (tối đa 8 từ).\n- Tối đa 5 nhánh cấp 1 và 4 nhánh con mỗi cấp.\n- Không dùng đánh số, dấu gạch đầu dòng hoặc bảng.\n\nNội dung cần chuyển:\n[DÁN NỘI DUNG VÀO ĐÂY]`;
+            try {
+                await navigator.clipboard.writeText(prompt);
+                showToast(currentLang === 'en' ? 'Prompt copied. Ask an AI, then paste its outline below.' : 'Đã sao chép prompt. Dán vào AI, rồi dán dàn ý trả về ở ô bên dưới.', 'success');
+            } catch { window.prompt('Sao chép prompt này:', prompt); }
+        };
 
         function resizeCanvas() {
             const container = document.querySelector('.canvas-area');
@@ -1431,6 +1469,7 @@
             history = history.slice(0, historyIndex);
             history.push(JSON.parse(JSON.stringify(mindmap)));
             if (history.length > 50) history.shift();
+            saveLocalMindmap();
             scheduleCloudAutosave();
         }
 
@@ -1464,12 +1503,14 @@
         function undo() {
             if (historyIndex > 0) { historyIndex--;
                 mindmap = JSON.parse(JSON.stringify(history[historyIndex]));
+                saveLocalMindmap();
                 render(); }
         }
 
         function redo() {
             if (historyIndex < history.length - 1) { historyIndex++;
                 mindmap = JSON.parse(JSON.stringify(history[historyIndex]));
+                saveLocalMindmap();
                 render(); }
         }
 
@@ -2206,6 +2247,12 @@
             render();
         }
 
+        document.addEventListener('visualmind-preferences', (event) => {
+            const preference = event.detail || {};
+            if (preference.theme && canvas) setTheme(preference.theme);
+            if (preference.language) setLanguage(preference.language);
+        });
+
         function addNodeFromToolbar() {
             const parentId = selection.nodeId || mindmap.center;
             if (parentId) {
@@ -2684,6 +2731,7 @@
                             fcOrder = mindmap.flashcards.map(c => c.id);
                             fcIndex = 0;
                             fcRevealed = false;
+                            saveLocalMindmap();
                             render();
                             if (appMode === 'flashcard') {
                                 renderFlashcardStudy();

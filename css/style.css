@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap');
 
 /* ===== HOMEPAGE THEME ===== */
 :root {
@@ -27,7 +27,7 @@ body {
     margin: 0;
     background: var(--home-bg);
     color: var(--home-text);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', 'Noto Sans', 'Segoe UI', sans-serif;
 }
 
 /* ===== SHARED APPLICATION LEFT RAIL ===== */
@@ -550,6 +550,7 @@ body.app-nav-collapsed .home-main {
 }
 
 .project-card {
+    position: relative;
     display: block;
     overflow: hidden;
     border: 1px solid var(--home-border);
@@ -689,6 +690,15 @@ body.app-nav-collapsed .home-main {
     font-size: 12px;
     line-height: 1.4;
 }
+
+.project-card-link { display: block; color: inherit; text-decoration: none; }
+.project-rename-btn {
+    position: absolute; right: 10px; bottom: 10px; z-index: 1;
+    border: 1px solid var(--home-border); border-radius: 5px; padding: 5px 8px;
+    background: var(--home-surface-hover); color: var(--home-text); cursor: pointer;
+    font: 600 11px 'Inter', sans-serif;
+}
+.project-rename-btn:hover { border-color: var(--home-orange); color: var(--home-orange-bright); }
 
 /* ===== LEARNING DASHBOARD ===== */
 .learning-dashboard {

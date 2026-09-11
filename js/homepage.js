@@ -1,7 +1,8 @@
 (() => {
     const storageKey = 'visualmind-library';
-    const themeKey = 'visualmind-home-theme';
-    const languageKey = 'visualmind-home-language';
+    // These preferences are shared by Home, Mindmap and Flashcard.
+    const themeKey = 'visualmind-theme';
+    const languageKey = 'visualmind-language';
     const treeElement = document.getElementById('libraryTree');
 
     const translations = {
@@ -164,7 +165,7 @@
                 const hasChildren = node.children && node.children.length > 0;
                 row.innerHTML = `
                     <button class="library-chevron ${hasChildren ? '' : 'is-empty'}" data-action="toggle" type="button" aria-label="Toggle"></button>
-                    ${isFolder ? '<div class="library-node-link library-folder-link">' : `<a class="library-node-link" href="${node.kind === 'flashcard' ? 'flashcard.html' : 'mindmap.html'}">`}
+                    ${isFolder ? '<div class="library-node-link library-folder-link">' : `<a class="library-node-link" href="${node.kind === 'flashcard' ? 'flashcard.html' : `mindmap.html?mapId=${encodeURIComponent(node.id)}`}">`}
                         <span class="library-file-icon ${isFolder ? 'library-folder-icon' : isMindmap ? 'library-mindmap-icon' : 'library-flashcard-icon'}" aria-hidden="true">${isMindmap ? mindmapIcon : isFolder ? '' : flashcardIcon}</span>
                         <span class="library-node-name" title="${node.name}">${node.name}</span>
                     ${isFolder ? '</div>' : '</a>'}
@@ -197,7 +198,9 @@
     const setTheme = (theme) => {
         currentTheme = theme;
         document.body.dataset.homeTheme = theme;
+        document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
         localStorage.setItem(themeKey, theme);
+        document.dispatchEvent(new CustomEvent('visualmind-preferences', { detail: { theme } }));
         document.querySelectorAll('[data-theme-choice]').forEach((button) => {
             button.classList.toggle('active', button.dataset.themeChoice === theme);
         });
@@ -389,6 +392,7 @@
         button.addEventListener('click', () => {
             currentLanguage = button.dataset.languageChoice;
             localStorage.setItem(languageKey, currentLanguage);
+            document.dispatchEvent(new CustomEvent('visualmind-preferences', { detail: { language: currentLanguage } }));
             updateTranslations();
         });
     });
@@ -420,7 +424,7 @@
 
         const libraryHeading = document.createElement('div');
         libraryHeading.className = 'dashboard-library-heading';
-        libraryHeading.innerHTML = '<div><p class="dashboard-kicker">Thư viện cloud</p><h2>Tất cả mindmap</h2></div><span>Được cập nhật gần đây</span>';
+        libraryHeading.innerHTML = '<div><p class="dashboard-kicker">Thư viện</p><h2>Tất cả mindmap</h2></div><span>Được cập nhật gần đây</span>';
         cloudGrid.parentElement.insertBefore(libraryHeading, cloudGrid);
 
         const readTasks = () => {
@@ -528,15 +532,17 @@
 
         cloudGrid.innerHTML = '';
         mindmaps.forEach((mindmap) => {
-            const card = document.createElement('a');
+            const card = document.createElement('article');
             card.className = 'project-card';
             const isFlashcardOnly = !mindmap.data?.center && (mindmap.data?.flashcards || []).length > 0;
-            card.href = `${isFlashcardOnly ? 'flashcard.html' : 'mindmap.html'}?cloudId=${encodeURIComponent(mindmap.id)}`;
+            const link = document.createElement('a');
+            link.className = 'project-card-link';
+            link.href = `${isFlashcardOnly ? 'flashcard.html' : 'mindmap.html'}?cloudId=${encodeURIComponent(mindmap.id)}`;
             const updatedAt = mindmap.updated_at
                 ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(mindmap.updated_at))
                 : '';
             const contentType = isFlashcardOnly ? 'Flashcard' : 'Mindmap';
-            card.innerHTML = `<div class="project-thumbnail"><span class="${isFlashcardOnly ? 'thumbnail-cards' : 'thumbnail-map'}" aria-hidden="true"></span><span class="thumbnail-label">${contentType}</span></div>`;
+            link.innerHTML = `<div class="project-thumbnail"><span class="${isFlashcardOnly ? 'thumbnail-cards' : 'thumbnail-map'}" aria-hidden="true"></span><span class="thumbnail-label">${contentType}</span></div>`;
             const info = document.createElement('div');
             info.className = 'project-info';
             info.innerHTML = `<span class="project-icon" aria-hidden="true">${isFlashcardOnly ? flashcardIcon : mindmapIcon}</span><div><h2 class="project-title"></h2><p class="project-meta"></p></div>`;
@@ -549,7 +555,20 @@
             info.querySelector('.project-meta').textContent = updatedAt
                 ? `${contentType} · ${contentSummary} · Cập nhật ${updatedAt}`
                 : `${contentType} · ${contentSummary}`;
-            card.appendChild(info);
+            link.appendChild(info);
+            card.appendChild(link);
+            const renameButton = document.createElement('button');
+            renameButton.type = 'button';
+            renameButton.className = 'project-rename-btn';
+            renameButton.textContent = currentLanguage === 'vi' ? 'Đổi tên' : 'Rename';
+            renameButton.addEventListener('click', () => {
+                showInputDialog(currentLanguage === 'vi' ? 'Đổi tên mindmap' : 'Rename mindmap', mindmap.title, async (title) => {
+                    const renamed = await renameMindmapInCloud(mindmap.id, title);
+                    if (renamed) renderCloudMindmaps(user);
+                    else window.alert(currentLanguage === 'vi' ? 'Không thể đổi tên. Vui lòng thử lại.' : 'Could not rename this mindmap. Please try again.');
+                });
+            });
+            card.appendChild(renameButton);
             cloudGrid.appendChild(card);
         });
     };

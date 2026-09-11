@@ -77,6 +77,23 @@ async function loadMindmapsFromCloud() {
     }
 }
 
+async function renameMindmapInCloud(id, title) {
+    const user = await getCurrentUser();
+    if (!supabaseClient || !user || !id || !title) return false;
+    try {
+        const { error } = await supabaseClient
+            .from('hodi database')
+            .update({ title: title.trim(), updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .eq('user_id', user.id);
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('[VisualMind] Could not rename mindmap:', error);
+        return false;
+    }
+}
+
 async function loadMindmapFromCloudById(id) {
     if (!supabaseClient || !id) return null;
 
