@@ -84,9 +84,26 @@
     const getLibrary = () => {
         try {
             const stored = JSON.parse(localStorage.getItem(storageKey));
-            return stored ? normalizeLibrary(stored) : [];
+            // Remove the old demo-only Project/Sub-project seed without touching
+            // user-created folders or documents.
+            const withoutDemoSeed = (stored || []).filter((node) => node.id !== 'project-1');
+            const restored = normalizeLibrary(withoutDemoSeed);
+            // The mindmap document store is the recovery source of truth. Rebuild
+            // missing Library entries so navigation can never hide saved work.
+            const documents = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}');
+            const hasNode = (nodes, id) => nodes.some((node) => node.id === id || hasNode(node.children || [], id));
+            let nextNumber = restored.reduce((count, node) => count + (node.kind === 'mindmap' ? 1 : 0), 0);
+            Object.entries(documents).forEach(([id, document]) => {
+                if (id === 'flashcard-workspace' || !document?.center || hasNode(restored, id)) return;
+                nextNumber += 1;
+                restored.push({ id, name: `Mindmap ${nextNumber}`, kind: 'mindmap', children: [] });
+            });
+            if (JSON.stringify(stored || []) !== JSON.stringify(restored)) {
+                localStorage.setItem(storageKey, JSON.stringify(restored));
+            }
+            return restored;
         } catch {
-            return JSON.parse(JSON.stringify(defaultLibrary));
+            return [];
         }
     };
 
@@ -95,12 +112,17 @@
     let currentTheme = localStorage.getItem(themeKey) || 'dark';
     let activeDragId = null;
     let activeDropMode = null;
+    let dashboardGrid = null;
 
     const text = (key) => translations[currentLanguage][key] || key;
-    const save = () => localStorage.setItem(storageKey, JSON.stringify(library));
+    const save = () => {
+        localStorage.setItem(storageKey, JSON.stringify(library));
+        renderDashboardLibrary();
+    };
     document.addEventListener('visualmind-library-change', () => {
         library = getLibrary();
         renderTree();
+        renderDashboardLibrary();
     });
     const mindmapIcon = '<svg class="library-mindmap-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg>';
     const flashcardIcon = '<svg class="library-flashcard-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg>';
@@ -402,6 +424,64 @@
     });
 
     const cloudGrid = document.querySelector('.home-grid');
+    dashboardGrid = cloudGrid;
+
+    function getMindmapDocuments(nodes = library) {
+        return nodes.flatMap((node) => [
+            ...(node.kind === 'mindmap' ? [node] : []),
+            ...getMindmapDocuments(node.children || [])
+        ]);
+    }
+
+    function removeMindmapDocument(id) {
+        const found = findNode(library, id);
+        if (!found) return;
+        found.siblings.splice(found.siblings.indexOf(found.node), 1);
+        try {
+            const documents = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}');
+            delete documents[id];
+            localStorage.setItem('visualmind-local-mindmaps', JSON.stringify(documents));
+        } catch { /* The library entry is still removed if draft data is unavailable. */ }
+        save();
+        renderTree();
+    }
+
+    function renderDashboardLibrary() {
+        if (!dashboardGrid) return;
+        const documents = getMindmapDocuments();
+        dashboardGrid.innerHTML = '';
+        if (!documents.length) {
+            dashboardGrid.innerHTML = `<p class="project-meta">${currentLanguage === 'vi' ? 'Chưa có mindmap. Rê chuột vào Mindmap ở thanh bên để tạo sơ đồ đầu tiên.' : 'No mindmaps yet. Hover Mindmap in the sidebar to create your first one.'}</p>`;
+            return;
+        }
+        documents.forEach((document) => {
+            const card = document.createElement('article');
+            card.className = 'project-card';
+            const link = document.createElement('a');
+            link.className = 'project-card-link';
+            link.href = `mindmap.html?mapId=${encodeURIComponent(document.id)}`;
+            link.innerHTML = `<div class="project-thumbnail"><span class="thumbnail-map" aria-hidden="true"></span><span class="thumbnail-label">Mindmap</span></div><div class="project-info"><span class="project-icon" aria-hidden="true">${mindmapIcon}</span><div><h2 class="project-title"></h2><p class="project-meta">Mindmap</p></div></div>`;
+            link.querySelector('.project-title').textContent = document.name;
+            card.appendChild(link);
+            const actions = document.createElement('div');
+            actions.className = 'project-card-actions';
+            actions.innerHTML = `<button type="button" data-rename>${currentLanguage === 'vi' ? 'Đổi tên' : 'Rename'}</button><button type="button" data-delete>${currentLanguage === 'vi' ? 'Xóa' : 'Delete'}</button>`;
+            actions.querySelector('[data-rename]').addEventListener('click', () => {
+                showInputDialog(currentLanguage === 'vi' ? 'Đổi tên mindmap' : 'Rename mindmap', document.name, (name) => {
+                    const found = findNode(library, document.id);
+                    if (!found) return;
+                    found.node.name = name;
+                    save();
+                    renderTree();
+                });
+            });
+            actions.querySelector('[data-delete]').addEventListener('click', () => {
+                showConfirmDialog(currentLanguage === 'vi' ? `Xóa mindmap “${document.name}”?` : `Delete “${document.name}”?`, () => removeMindmapDocument(document.id));
+            });
+            card.appendChild(actions);
+            dashboardGrid.appendChild(card);
+        });
+    }
 
     const setupDashboard = () => {
         if (!cloudGrid) return;
@@ -532,6 +612,9 @@
 
     let cloudRenderVersion = 0;
     const renderCloudMindmaps = async (user) => {
+        // The dashboard mirrors the local Library tree, so both always show the same mindmaps.
+        renderDashboardLibrary();
+        return;
         if (!cloudGrid) return;
         const renderVersion = ++cloudRenderVersion;
         if (!user) {
@@ -608,4 +691,5 @@
 
     setTheme(currentTheme);
     updateTranslations();
+    renderDashboardLibrary();
 })();

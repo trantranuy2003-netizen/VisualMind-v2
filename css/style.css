@@ -691,6 +691,14 @@ body.app-nav-collapsed .home-main {
     line-height: 1.4;
 }
 
+.app-nav-create-mindmap { position: relative; }
+.app-nav-create-mindmap::after {
+    position: absolute; right: 10px; opacity: 0; color: var(--home-orange-bright);
+    content: '+'; font-size: 20px; font-weight: 500; line-height: 1;
+    transition: opacity .15s ease;
+}
+.app-nav-create-mindmap:hover::after, .app-nav-create-mindmap:focus-visible::after { opacity: 1; }
+
 .project-card-link { display: block; color: inherit; text-decoration: none; }
 .project-rename-btn {
     position: absolute; right: 10px; bottom: 10px; z-index: 1;
@@ -699,6 +707,10 @@ body.app-nav-collapsed .home-main {
     font: 600 11px 'Inter', sans-serif;
 }
 .project-rename-btn:hover { border-color: var(--home-orange); color: var(--home-orange-bright); }
+.project-card-actions { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; z-index: 1; }
+.project-card-actions button { border: 1px solid var(--home-border); border-radius: 5px; padding: 5px 8px; background: var(--home-surface-hover); color: var(--home-text); cursor: pointer; font: 600 11px 'Inter', sans-serif; }
+.project-card-actions button:hover { border-color: var(--home-orange); color: var(--home-orange-bright); }
+.project-card-actions [data-delete]:hover { color: #ff847c; }
 
 /* ===== LEARNING DASHBOARD ===== */
 .learning-dashboard {

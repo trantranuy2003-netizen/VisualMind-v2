@@ -522,7 +522,12 @@
                 const library = JSON.parse(localStorage.getItem(libraryKey) || '[]');
                 const contains = (nodes) => nodes.some((node) => node.id === id || contains(node.children || []));
                 if (contains(library)) return;
-                library.unshift({ id, name: `Mindmap ${new Date().toLocaleString('vi-VN')}`, kind: 'mindmap', children: [] });
+                const collectNames = (nodes) => nodes.flatMap((node) => [node.name || '', ...collectNames(node.children || [])]);
+                const highestNumber = collectNames(library).reduce((highest, name) => {
+                    const match = /^Mindmap\s+(\d+)$/i.exec(name.trim());
+                    return match ? Math.max(highest, Number(match[1])) : highest;
+                }, 0);
+                library.unshift({ id, name: `Mindmap ${highestNumber + 1}`, kind: 'mindmap', children: [] });
                 localStorage.setItem(libraryKey, JSON.stringify(library));
                 document.dispatchEvent(new CustomEvent('visualmind-library-change'));
             } catch (error) { console.warn('[VisualMind] Could not add mindmap to library:', error); }
