@@ -18,6 +18,10 @@ async function signInWithGoogle() {
 
 async function signOut() {
     if (!supabaseClient) return { error: new Error('Supabase chưa được cấu hình.') };
+    if (typeof window.saveDashboardToCloud === 'function' && !await window.saveDashboardToCloud()) {
+        alert('Dashboard chưa lưu xong lên cloud. Vui lòng thử lại trước khi đăng xuất.');
+        return { error: new Error('Dashboard sync incomplete') };
+    }
     if (typeof window.saveCurrentWorkToCloud === 'function') {
         const saved = await window.saveCurrentWorkToCloud(true);
         if (!saved) {
@@ -90,7 +94,7 @@ async function performMindmapCloudSave(title, dataObject, documentId = null, clo
                 delete dirty[documentId];
                 localStorage.setItem('visualmind-dirty-mindmaps', JSON.stringify(dirty));
             }
-            document.dispatchEvent(new CustomEvent('visualmind-cloud-save-status', { detail: { saved: true } }));
+            if (documentId !== 'hodi-dashboard-v1') document.dispatchEvent(new CustomEvent('visualmind-cloud-save-status', { detail: { saved: true } }));
             return true;
         }
         const { data: existing, error: findError } = await table
@@ -108,7 +112,7 @@ async function performMindmapCloudSave(title, dataObject, documentId = null, clo
         return true;
     } catch (error) {
         console.error('[VisualMind] Could not save to cloud:', error);
-        document.dispatchEvent(new CustomEvent('visualmind-cloud-save-status', { detail: { saved: false, message: error.message, code: error.code } }));
+        if (documentId !== 'hodi-dashboard-v1') document.dispatchEvent(new CustomEvent('visualmind-cloud-save-status', { detail: { saved: false, message: error.message, code: error.code } }));
         return false;
     }
 }

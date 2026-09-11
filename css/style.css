@@ -1463,6 +1463,10 @@ body[data-home-theme="light"] .planner-date-input { color-scheme: light; }
 .calendar-day-number { font-size: 12px; }
 .calendar-event { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px; border-radius: 3px; background: rgba(232, 93, 4, .12); font-size: 9px; }
 .calendar-more { color: var(--home-muted); font-size: 9px; }
+.calendar-more { text-decoration: underline; cursor: pointer; }
+.calendar-day-dialog { width: min(480px, calc(100vw - 32px)); }
+.calendar-all-items { max-height: 60vh; overflow-y: auto; margin-top: 12px; }
+.dashboard-sync-status { color: var(--home-muted); font-size: 11px; margin: 0 0 12px; }
 .planner-dialog label { display: grid; gap: 7px; margin: 14px 0; color: var(--home-muted); font-size: 12px; }
 .planner-dialog select { width: 100%; padding: 10px; border: 1px solid var(--home-border); border-radius: 6px; background: var(--home-surface); color: var(--home-text); font: inherit; }
 @media (max-width: 720px) {

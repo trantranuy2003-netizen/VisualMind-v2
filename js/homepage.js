@@ -545,7 +545,10 @@
             try { return JSON.parse(localStorage.getItem(storageKey)) || []; } catch { return []; }
         };
         let tasks = readTasks().filter((task) => task && task.id && task.title);
-        const saveTasks = () => localStorage.setItem(storageKey, JSON.stringify(tasks));
+        const saveTasks = () => {
+            localStorage.setItem(storageKey, JSON.stringify(tasks));
+            document.dispatchEvent(new CustomEvent('visualmind-dashboard-change'));
+        };
 
         const renderTasks = () => {
             dashboard.querySelector('[data-task-count]').textContent = `${tasks.length} việc`;
@@ -636,6 +639,13 @@
             renderTasks();
         });
         renderTasks();
+        const dashboardStatus = document.createElement('p');
+        dashboardStatus.className = 'dashboard-sync-status';
+        dashboardStatus.textContent = window.dashboardSyncStatus || '';
+        dashboardStatus.setAttribute('role', 'status');
+        dashboard.before(dashboardStatus);
+        document.addEventListener('visualmind-dashboard-status', event => { dashboardStatus.textContent = event.detail.text; });
+        document.addEventListener('visualmind-dashboard-restored', () => { tasks = readTasks(); renderTasks(); });
         if (window.setupWeeklyPlanner) window.setupWeeklyPlanner(dashboard);
     };
 

@@ -29,7 +29,11 @@
         let week = weekOf(selectedDate);
         let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const id = () => `plan-${crypto.randomUUID()}`;
-        const save = () => { localStorage.setItem(key, JSON.stringify(state)); render(); };
+        const save = () => {
+            localStorage.setItem(key, JSON.stringify(state));
+            document.dispatchEvent(new CustomEvent('visualmind-dashboard-change'));
+            render();
+        };
         const el = (tag, className, text) => {
             const node = document.createElement(tag);
             if (className) node.className = className;
@@ -178,7 +182,10 @@
                 cell.setAttribute('aria-label', `${date.toLocaleDateString('vi-VN')}, ${items.length} công việc`);
                 items.slice(0, 2).forEach(item => { const label = el('span', 'calendar-event', `${item.repeat ? '↻' : item.kind === 'goal' ? '◎' : '□'} ${item.title}`); label.title = item.title; cell.appendChild(label); });
                 if (items.length > 2) cell.appendChild(el('span', 'calendar-more', `+${items.length - 2} mục`));
-                cell.onclick = () => { selectedDate = value; renderDaily(); renderCalendar(); };
+                cell.onclick = event => {
+                    selectedDate = value; renderDaily(); renderCalendar();
+                    if (event.target.closest('.calendar-more') || (event.detail === 0 && items.length > 2)) showDayItems(value, items);
+                };
                 cell.addEventListener('dragover', e => { if (Array.from(e.dataTransfer.types).includes('application/x-hodi-plan')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; cell.classList.add('is-drag-over'); } });
                 cell.addEventListener('dragleave', e => { if (!cell.contains(e.relatedTarget)) cell.classList.remove('is-drag-over'); });
                 cell.addEventListener('drop', e => { e.preventDefault(); cell.classList.remove('is-drag-over'); const item = state.items.find(entry => entry.id === e.dataTransfer.getData('application/x-hodi-plan')); if (item) schedule(item, value); });
@@ -186,7 +193,44 @@
             }
         };
         function render() { renderWeekly(); renderDaily(); renderCalendar(); }
+        function showDayItems(value, items) {
+            const overlay = el('div', 'library-dialog-overlay');
+            const panel = el('section', 'library-dialog calendar-day-dialog');
+            panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true');
+            panel.setAttribute('aria-label', `Công việc ngày ${formatDate(value)}`);
+            const heading = el('div', 'dashboard-panel-heading');
+            heading.appendChild(el('h3', '', `Ngày ${parseDate(value).toLocaleDateString('vi-VN')} · ${items.length} mục`));
+            const close = () => { overlay.remove(); calendar.querySelector(`[data-date="${value}"]`)?.focus(); };
+            const closeButton = button('×', close, 'Đóng danh sách'); heading.appendChild(closeButton);
+            panel.appendChild(heading);
+            const list = el('div', 'calendar-all-items');
+            items.forEach(item => {
+                const row = el('div', 'planner-day-task');
+                const check = el('input'); check.type = 'checkbox'; check.checked = (item.completedDates || []).includes(value);
+                check.setAttribute('aria-label', `Hoàn thành: ${item.title}`);
+                row.classList.toggle('is-completed', check.checked);
+                check.onchange = () => {
+                    item.completedDates = (item.completedDates || []).filter(date => date !== value);
+                    if (check.checked) item.completedDates.push(value);
+                    row.classList.toggle('is-completed', check.checked); save();
+                };
+                row.append(check, el('span', 'planner-task-title', `${item.repeat ? '↻' : item.kind === 'goal' ? '◎' : '□'} ${item.title}`));
+                list.appendChild(row);
+            });
+            panel.appendChild(list); overlay.appendChild(panel); document.body.appendChild(overlay);
+            overlay.onclick = event => { if (event.target === overlay) close(); };
+            overlay.onkeydown = event => {
+                if (event.key === 'Escape') close();
+                if (event.key === 'Tab') {
+                    const fields = [...panel.querySelectorAll('button, input')];
+                    if (event.shiftKey && document.activeElement === fields[0]) { event.preventDefault(); fields.at(-1).focus(); }
+                    else if (!event.shiftKey && document.activeElement === fields.at(-1)) { event.preventDefault(); fields[0].focus(); }
+                }
+            };
+            closeButton.focus();
+        }
         const sync = () => { state = read(); render(); };
+        document.addEventListener('visualmind-dashboard-restored', sync);
         window.addEventListener('storage', e => { if (e.storageArea === localStorage && (e.key === key || e.key === null)) sync(); });
         window.addEventListener('pageshow', sync);
         window.addEventListener('focus', sync);

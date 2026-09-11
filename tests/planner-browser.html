@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<section id="dashboard"><section class="todo-panel"></section></section>
+<pre id="result">RUNNING</pre>
+<script src="../js/planner.js"></script>
+<script>
+try {
+    const date = new Date();
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const items = Array.from({ length: 5 }, (_, index) => ({ id: `test-${index}`, title: `Task ${index}`, kind: 'task', dates: [key], completedDates: [] }));
+    localStorage.setItem('visualmind-weekly-planner', JSON.stringify({ items, recurring: [] }));
+    window.setupWeeklyPlanner(document.querySelector('#dashboard'));
+    document.querySelector('.is-today .calendar-more').click();
+    if (document.querySelectorAll('.calendar-all-items .planner-day-task').length !== 5) throw Error('Day popup must include all five tasks');
+    document.querySelector('.calendar-all-items input').click();
+    const saved = JSON.parse(localStorage.getItem('visualmind-weekly-planner'));
+    if (!saved.items[0].completedDates.includes(key)) throw Error('Completion must be persisted');
+    document.querySelector('.calendar-day-dialog button').click();
+    if (document.querySelector('.calendar-day-dialog')) throw Error('Popup must close');
+    document.querySelector('#result').textContent = 'PASS: +x opens every item, completion persists, popup closes.';
+} catch (error) { document.querySelector('#result').textContent = `FAIL: ${error.stack}`; }
+</script>
