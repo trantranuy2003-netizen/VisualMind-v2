@@ -802,7 +802,7 @@ body.app-nav-collapsed .home-main {
 
 .todo-item {
     display: grid;
-    grid-template-columns: 16px 1fr 20px;
+    grid-template-columns: 16px 18px 1fr 20px;
     align-items: center;
     gap: 7px;
     padding: 9px 8px;
@@ -817,6 +817,12 @@ body.app-nav-collapsed .home-main {
 .todo-item.is-dragging { opacity: .42; }
 .todo-grip { color: var(--home-muted); cursor: grab; font-size: 16px; line-height: 1; }
 .todo-item-title { overflow-wrap: anywhere; }
+.todo-item.is-completed .todo-item-title { color: var(--home-muted); text-decoration: line-through; }
+.todo-check { display: grid; place-items: center; cursor: pointer; }
+.todo-check input { position: absolute; opacity: 0; pointer-events: none; }
+.todo-check span { width: 16px; height: 16px; border: 1px solid var(--home-muted); border-radius: 4px; }
+.todo-check input:checked + span { border-color: var(--home-orange); background: var(--home-orange); }
+.todo-check input:checked + span::after { display: block; color: #fff; content: '✓'; font-size: 12px; font-weight: 800; line-height: 15px; text-align: center; }
 .todo-item button { border: 0; background: transparent; color: var(--home-muted); cursor: pointer; font-size: 18px; line-height: 1; }
 .todo-item button:hover { color: #e85d04; }
 .todo-empty { margin: auto; color: var(--home-muted); font-size: 11px; text-align: center; }

@@ -559,7 +559,18 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             const cloudId = new URLSearchParams(window.location.search).get('cloudId');
-            if (!cloudId) return;
+            if (!cloudId) {
+                try {
+                    const saved = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}')['flashcard-workspace'];
+                    if (saved) {
+                        mindmap = { center: saved.center || null, nodes: saved.nodes || {}, nextId: saved.nextId || 1, links: saved.links || [], groups: saved.groups || [], flashcards: saved.flashcards || [], nextFlashcardId: saved.nextFlashcardId || 1 };
+                        fcOrder = mindmap.flashcards.map(card => card.id);
+                        renderFlashcardStudy();
+                        renderFlashcardList();
+                    }
+                } catch (error) { console.warn('[VisualMind] Could not restore local flashcards:', error); }
+                return;
+            }
 
             const record = await loadMindmapFromCloudById(cloudId);
             if (!record || !record.data) {

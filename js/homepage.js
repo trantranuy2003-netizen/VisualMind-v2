@@ -84,7 +84,7 @@
     const getLibrary = () => {
         try {
             const stored = JSON.parse(localStorage.getItem(storageKey));
-            return stored ? normalizeLibrary(stored) : JSON.parse(JSON.stringify(defaultLibrary));
+            return stored ? normalizeLibrary(stored) : [];
         } catch {
             return JSON.parse(JSON.stringify(defaultLibrary));
         }
@@ -98,6 +98,10 @@
 
     const text = (key) => translations[currentLanguage][key] || key;
     const save = () => localStorage.setItem(storageKey, JSON.stringify(library));
+    document.addEventListener('visualmind-library-change', () => {
+        library = getLibrary();
+        renderTree();
+    });
     const mindmapIcon = '<svg class="library-mindmap-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg>';
     const flashcardIcon = '<svg class="library-flashcard-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg>';
 
@@ -448,7 +452,9 @@
                     item.className = 'todo-item';
                     item.draggable = true;
                     item.dataset.taskId = task.id;
-                    item.innerHTML = '<span class="todo-grip" aria-hidden="true">⠿</span><span class="todo-item-title"></span><button type="button" data-delete-task aria-label="Xóa việc">×</button>';
+                    item.classList.toggle('is-completed', Boolean(task.completed));
+                    item.innerHTML = '<span class="todo-grip" aria-hidden="true">⠿</span><label class="todo-check"><input type="checkbox" data-toggle-task><span aria-hidden="true"></span></label><span class="todo-item-title"></span><button type="button" data-delete-task aria-label="Xóa việc">×</button>';
+                    item.querySelector('[data-toggle-task]').checked = Boolean(task.completed);
                     item.querySelector('.todo-item-title').textContent = task.title;
                     list.appendChild(item);
                 });
@@ -468,6 +474,16 @@
         });
 
         dashboard.addEventListener('click', (event) => {
+            const checkbox = event.target.closest('[data-toggle-task]');
+            if (checkbox) {
+                const item = checkbox.closest('.todo-item');
+                const task = tasks.find((entry) => entry.id === item.dataset.taskId);
+                if (!task) return;
+                task.completed = checkbox.checked;
+                saveTasks();
+                renderTasks();
+                return;
+            }
             const button = event.target.closest('[data-delete-task]');
             if (!button) return;
             const item = button.closest('.todo-item');

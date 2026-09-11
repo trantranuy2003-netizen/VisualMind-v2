@@ -358,6 +358,7 @@
         const localMindmapsKey = 'visualmind-local-mindmaps';
         const lastMindmapKey = 'visualmind-last-mindmap-id';
         let localMindmapId = null;
+        let isNewLocalMindmap = false;
         let cloudAutosaveTimer = null;
         let cloudSaveQueue = Promise.resolve();
 
@@ -412,6 +413,7 @@
             canvas = document.getElementById('canvas');
             if (!canvas) return;
             ctx = canvas.getContext('2d');
+            if (document.fonts?.ready) document.fonts.ready.then(() => render());
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
             canvas.addEventListener('mousemove', handleMouseMove);
@@ -444,10 +446,13 @@
                 const params = new URLSearchParams(window.location.search);
                 const cloudId = params.get('cloudId');
                 if (!cloudId) {
-                    localMindmapId = params.get('mapId') || localStorage.getItem(lastMindmapKey) || `map-${Date.now()}`;
+                    isNewLocalMindmap = params.get('new') === '1';
+                    localMindmapId = isNewLocalMindmap ? `map-${Date.now()}` : (params.get('mapId') || localStorage.getItem(lastMindmapKey) || `map-${Date.now()}`);
                     localStorage.setItem(lastMindmapKey, localMindmapId);
-                    if (!params.get('mapId')) {
+                    if (isNewLocalMindmap) ensureLibraryMindmap(localMindmapId);
+                    if (!params.get('mapId') || isNewLocalMindmap) {
                         const url = new URL(window.location.href);
+                        url.searchParams.delete('new');
                         url.searchParams.set('mapId', localMindmapId);
                         window.history.replaceState({}, '', url);
                     }
@@ -501,13 +506,26 @@
         }
 
         function saveLocalMindmap() {
-            if (!localMindmapId || (!mindmap.center && !(mindmap.flashcards || []).length)) return;
+            const documentId = localMindmapId || (window.location.pathname.endsWith('flashcard.html') ? 'flashcard-workspace' : null);
+            if (!documentId || (!mindmap.center && !(mindmap.flashcards || []).length)) return;
             try {
                 const records = JSON.parse(localStorage.getItem(localMindmapsKey) || '{}');
-                records[localMindmapId] = JSON.parse(JSON.stringify(mindmap));
+                records[documentId] = JSON.parse(JSON.stringify(mindmap));
                 localStorage.setItem(localMindmapsKey, JSON.stringify(records));
-                localStorage.setItem(lastMindmapKey, localMindmapId);
+                if (localMindmapId) localStorage.setItem(lastMindmapKey, localMindmapId);
             } catch (error) { console.warn('[VisualMind] Could not save local mindmap:', error); }
+        }
+
+        function ensureLibraryMindmap(id) {
+            const libraryKey = 'visualmind-library';
+            try {
+                const library = JSON.parse(localStorage.getItem(libraryKey) || '[]');
+                const contains = (nodes) => nodes.some((node) => node.id === id || contains(node.children || []));
+                if (contains(library)) return;
+                library.unshift({ id, name: `Mindmap ${new Date().toLocaleString('vi-VN')}`, kind: 'mindmap', children: [] });
+                localStorage.setItem(libraryKey, JSON.stringify(library));
+                document.dispatchEvent(new CustomEvent('visualmind-library-change'));
+            } catch (error) { console.warn('[VisualMind] Could not add mindmap to library:', error); }
         }
 
         window.copyMindmapAIPrompt = async function() {
@@ -628,7 +646,7 @@
                     pid = p ? p.parent : null; }
             }
             const fontWeight = isCenter ? '800' : depth === 1 ? '700' : '500';
-            const fontFamily = depth <= 1 ? "'Sora', sans-serif" : "'Inter', sans-serif";
+            const fontFamily = depth <= 1 ? "'Sora', 'Noto Sans', sans-serif" : "'Inter', 'Noto Sans', sans-serif";
             const words = buildRichWords(node.text || '', node.bold || false, node.italic || false, node.underline ||
                 false);
             const lines = layoutRichLines(words, width - 14, fontSize, fontFamily, fontWeight);
@@ -1061,7 +1079,7 @@
             const effectiveTextColor = node.textColorManual ? (node.textColor || '#333') : autoContrastColor(fillStyle);
             ctx.fillStyle = effectiveTextColor;
             const fontWeight = isCenter ? '800' : depth === 1 ? '700' : '500';
-            const fontFamily = depth <= 1 ? "'Sora', sans-serif" : "'Inter', sans-serif";
+            const fontFamily = depth <= 1 ? "'Sora', 'Noto Sans', sans-serif" : "'Inter', 'Noto Sans', sans-serif";
 
             let textY = y + height / 2;
             let displayText = text;

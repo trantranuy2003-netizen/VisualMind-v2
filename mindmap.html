@@ -15,7 +15,7 @@
         </button>
         <nav class="app-nav-links">
             <a class="app-nav-link" href="index.html"><span>⌂</span><b data-i18n="home">Trang chủ</b></a>
-            <a class="app-nav-link active" href="mindmap.html"><span><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg></span><b data-i18n="mindmap">Mindmap</b></a>
+            <a class="app-nav-link active" href="mindmap.html?new=1"><span><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg></span><b data-i18n="mindmap">Mindmap</b></a>
             <a class="app-nav-link" href="flashcard.html"><span><svg class="flashcard-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg></span><b data-i18n="flashcard">Flashcard</b></a>
         </nav>
         <div class="app-nav-divider"></div>
@@ -58,7 +58,7 @@
                 </div>
                 <div class="sidebar-content" id="sidebarContent">
                     <div class="tab-content" id="tab-text" style="display:block;">
-                        <div class="section-title">📝 Text to Mindmap</div>
+                        <div class="section-title" data-key="tab-text">📝 Text to Mindmap</div>
                         <div class="text-to-mindmap-guide">
                             <strong>Cách viết nhanh</strong>
                             <ol>
@@ -74,19 +74,19 @@
                         </div>
                         <button class="action-btn" type="button" onclick="copyMindmapAIPrompt()">✨ Sao chép prompt cho AI</button>
                         <textarea id="textInput" placeholder="Paste outline text here:&#10;Chủ đề trung tâm 📘&#10;  **Nhánh 1** 📊&#10;    Ý con 1.1&#10;    Ý con 1.2" style="min-height:150px;"></textarea>
-                        <button class="action-btn primary" onclick="importFromText(true)">🔄 Update</button>
+                        <button class="action-btn primary" data-key="btn-update" onclick="importFromText(true)">🔄 Update</button>
                         <div id="error-message" style="font-size:11px; color:var(--danger); margin-top:4px;"></div>
                     </div>
                     <div class="tab-content" id="tab-import" style="display:none;">
-                        <div class="section-title">📂 Import</div>
-                        <button class="action-btn" onclick="loadFromFile()">📂 Import JSON</button>
+                        <div class="section-title" data-key="tab-import">📂 Import</div>
+                        <button class="action-btn" data-key="btn-import-json" onclick="loadFromFile()">📂 Import JSON</button>
                         <input type="file" id="fileInput" accept=".json" style="display:none;">
                     </div>
                     <div class="tab-content" id="tab-export" style="display:none;">
-                        <div class="section-title">💾 Export</div>
-                        <button class="action-btn" onclick="showSaveModal()">💾 Save as JSON</button>
-                        <button class="action-btn" onclick="startSnippingTool('image')">🖼️ Save as Image</button>
-                        <button class="action-btn" onclick="startSnippingTool('pdf')">📄 Save as PDF</button>
+                        <div class="section-title" data-key="tab-export">💾 Export</div>
+                        <button class="action-btn" data-key="btn-save-json" onclick="showSaveModal()">💾 Save as JSON</button>
+                        <button class="action-btn" data-key="btn-save-image" onclick="startSnippingTool('image')">🖼️ Save as Image</button>
+                        <button class="action-btn" data-key="btn-save-pdf" onclick="startSnippingTool('pdf')">📄 Save as PDF</button>
                     </div>
                 </div>
             </div>

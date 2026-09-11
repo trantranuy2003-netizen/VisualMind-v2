@@ -15,7 +15,7 @@
             textarea.value = node.text;
             const align = node.textAlign || 'center';
             textarea.style.cssText =
-                `position:fixed; left:${screenX}px; top:${screenY}px; width:${screenW}px; height:${screenH}px; z-index:1000; border:2px solid var(--accent); border-radius:${node.id === mindmap.center ? '18px' : '13px'}; padding:4px 12px; font-size:${node.fontSize}px; font-family:'Inter',sans-serif; font-weight:${node.id === mindmap.center ? '800' : '500'}; text-align:${align}; box-shadow:0 4px 20px rgba(31,37,68,0.2); background:var(--panel-bg); color:var(--ink); resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.3;`;
+                `position:fixed; left:${screenX}px; top:${screenY}px; width:${screenW}px; height:${screenH}px; z-index:1000; border:2px solid var(--accent); border-radius:${node.id === mindmap.center ? '18px' : '13px'}; padding:4px 12px; font-size:${node.fontSize}px; font-family:'Inter','Noto Sans','Segoe UI',sans-serif; font-weight:${node.id === mindmap.center ? '800' : '500'}; text-align:${align}; box-shadow:0 4px 20px rgba(31,37,68,0.2); background:var(--panel-bg); color:var(--ink); resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.3;`;
             document.body.appendChild(textarea);
             inlineEdit = textarea;
             textarea.focus();
