@@ -358,6 +358,7 @@
         const localMindmapsKey = 'visualmind-local-mindmaps';
         const lastMindmapKey = 'visualmind-last-mindmap-id';
         let localMindmapId = null;
+        let activeCloudMindmapId = null;
         let isNewLocalMindmap = false;
         let cloudAutosaveTimer = null;
         let cloudSaveQueue = Promise.resolve();
@@ -447,7 +448,7 @@
                 const cloudId = params.get('cloudId');
                 if (!cloudId) {
                     isNewLocalMindmap = params.get('new') === '1';
-                    localMindmapId = isNewLocalMindmap ? `map-${Date.now()}` : (params.get('mapId') || localStorage.getItem(lastMindmapKey) || `map-${Date.now()}`);
+                    localMindmapId = isNewLocalMindmap ? `map-${crypto.randomUUID()}` : (params.get('mapId') || localStorage.getItem(lastMindmapKey) || `map-${crypto.randomUUID()}`);
                     localStorage.setItem(lastMindmapKey, localMindmapId);
                     if (isNewLocalMindmap) ensureLibraryMindmap(localMindmapId);
                     if (!params.get('mapId') || isNewLocalMindmap) {
@@ -462,11 +463,19 @@
                     return;
                 }
                 const record = await loadMindmapFromCloudById(cloudId);
-                if (!record || !applyCloudMindmap(record.data)) {
+                if (record) {
+                    localMindmapId = record.data?.visualmindDocumentId || `cloud-${record.id}`;
+                    activeCloudMindmapId = record.id;
+                }
+                const pendingLocal = localMindmapId && JSON.parse(localStorage.getItem('visualmind-dirty-mindmaps') || '{}')[localMindmapId]
+                    ? getLocalMindmap(localMindmapId) : null;
+                if (!record || !applyCloudMindmap(pendingLocal || record.data)) {
                     showToast('Không thể tải mindmap từ cloud.', 'error');
                     return;
                 }
                 sessionStorage.setItem('visualmind-cloud-title', record.title);
+                saveLocalMindmap(Boolean(pendingLocal));
+                if (pendingLocal) scheduleCloudAutosave();
                 showToast('Đã tải mindmap từ cloud.', 'success');
             }, 100);
         });
@@ -505,13 +514,18 @@
             catch { return null; }
         }
 
-        function saveLocalMindmap() {
+        function saveLocalMindmap(markDirty = true) {
             const documentId = localMindmapId || (window.location.pathname.endsWith('flashcard.html') ? 'flashcard-workspace' : null);
             if (!documentId || (!mindmap.center && !(mindmap.flashcards || []).length)) return;
             try {
                 const records = JSON.parse(localStorage.getItem(localMindmapsKey) || '{}');
                 records[documentId] = JSON.parse(JSON.stringify(mindmap));
                 localStorage.setItem(localMindmapsKey, JSON.stringify(records));
+                if (markDirty) {
+                    const dirty = JSON.parse(localStorage.getItem('visualmind-dirty-mindmaps') || '{}');
+                    dirty[documentId] = true;
+                    localStorage.setItem('visualmind-dirty-mindmaps', JSON.stringify(dirty));
+                }
                 if (localMindmapId) localStorage.setItem(lastMindmapKey, localMindmapId);
             } catch (error) { console.warn('[VisualMind] Could not save local mindmap:', error); }
         }
@@ -1553,11 +1567,21 @@
 
         window.saveCurrentWorkToCloud = async function(silent) {
             if (!mindmap.center && (!mindmap.flashcards || mindmap.flashcards.length === 0)) return true;
-            const title = sessionStorage.getItem('visualmind-cloud-title') || 'mindmap';
+            const findEntry = nodes => {
+                for (const node of nodes) {
+                    if (node.id === localMindmapId) return node;
+                    const found = findEntry(node.children || []);
+                    if (found) return found;
+                }
+            };
+            const entry = findEntry(JSON.parse(localStorage.getItem('visualmind-library') || '[]'));
+            const title = entry?.name || sessionStorage.getItem('visualmind-cloud-title') || 'Mindmap';
+            const documentId = localMindmapId;
+            const cloudId = activeCloudMindmapId || entry?.cloudId || null;
             const dataSnapshot = JSON.parse(JSON.stringify(mindmap));
             cloudSaveQueue = cloudSaveQueue.catch(() => true).then(async () => {
                 const user = await getCurrentUser();
-                return user ? saveMindmapToCloud(title, dataSnapshot) : true;
+                return user ? saveMindmapToCloud(title, dataSnapshot, documentId, cloudId) : true;
             });
             const saved = await cloudSaveQueue;
             if (!silent) {
@@ -1582,6 +1606,7 @@
             if (historyIndex > 0) { historyIndex--;
                 mindmap = JSON.parse(JSON.stringify(history[historyIndex]));
                 saveLocalMindmap();
+                scheduleCloudAutosave();
                 render(); }
         }
 
@@ -1589,6 +1614,7 @@
             if (historyIndex < history.length - 1) { historyIndex++;
                 mindmap = JSON.parse(JSON.stringify(history[historyIndex]));
                 saveLocalMindmap();
+                scheduleCloudAutosave();
                 render(); }
         }
 
@@ -2771,7 +2797,7 @@
             const title = filename.replace(/\.json$/i, '');
             sessionStorage.setItem('visualmind-cloud-title', title);
             saveMindmapJson(filename, json);
-            const saved = await saveMindmapToCloud(title, mindmap);
+            const saved = await saveMindmapToCloud(title, mindmap, localMindmapId, activeCloudMindmapId);
             showToast(saved ? 'Đã lưu thành công' : 'Không thể lưu lên cloud. File JSON vẫn đã được tải về.', saved ? 'success' : 'error');
         }
 
@@ -2855,7 +2881,6 @@
             const title = payload.filename.replace(/\.json$/i, '');
             sessionStorage.setItem('visualmind-cloud-title', title);
             saveMindmapJson(payload.filename, payload.json);
-            const saved = await saveMindmapToCloud(title, JSON.parse(payload.json));
+            const saved = await saveMindmapToCloud(title, JSON.parse(payload.json), localMindmapId, activeCloudMindmapId);
             showToast(saved ? 'Đã lưu thành công' : 'Không thể lưu lên cloud. File JSON vẫn đã được tải về.', saved ? 'success' : 'error');
         }
-

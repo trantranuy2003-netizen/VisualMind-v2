@@ -34,12 +34,44 @@ async function getCurrentUser() {
     return user || null;
 }
 
-async function saveMindmapToCloud(title, dataObject) {
+async function saveMindmapToCloud(title, dataObject, documentId = null, cloudId = null) {
     const user = await getCurrentUser();
     if (!supabaseClient || !user) return false;
 
     try {
         const table = supabaseClient.from('hodi database');
+        if (documentId) {
+            // Stable per-user identity: equal titles must never overwrite another map.
+            if (!cloudId) {
+                const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${user.id}:${documentId}`)));
+                bytes[6] = (bytes[6] & 15) | 80;
+                bytes[8] = (bytes[8] & 63) | 128;
+                const hex = [...bytes.slice(0, 16)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+                cloudId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+            }
+            const { error } = await table.upsert({
+                id: cloudId, user_id: user.id, title,
+                data: { ...dataObject, visualmindDocumentId: documentId },
+                updated_at: new Date().toISOString()
+            });
+            if (error) throw error;
+            const library = JSON.parse(localStorage.getItem('visualmind-library') || '[]');
+            const attachCloudId = nodes => nodes.forEach(node => {
+                if (node.id === documentId) node.cloudId = cloudId;
+                attachCloudId(node.children || []);
+            });
+            attachCloudId(library);
+            localStorage.setItem('visualmind-library', JSON.stringify(library));
+            document.dispatchEvent(new CustomEvent('visualmind-library-change'));
+            const documents = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}');
+            if (JSON.stringify(documents[documentId]) === JSON.stringify(dataObject)) {
+                const dirty = JSON.parse(localStorage.getItem('visualmind-dirty-mindmaps') || '{}');
+                delete dirty[documentId];
+                localStorage.setItem('visualmind-dirty-mindmaps', JSON.stringify(dirty));
+            }
+            document.dispatchEvent(new CustomEvent('visualmind-cloud-save-status', { detail: { saved: true } }));
+            return true;
+        }
         const { data: existing, error: findError } = await table
             .select('id')
             .eq('user_id', user.id)
@@ -55,11 +87,12 @@ async function saveMindmapToCloud(title, dataObject) {
         return true;
     } catch (error) {
         console.error('[VisualMind] Could not save to cloud:', error);
+        document.dispatchEvent(new CustomEvent('visualmind-cloud-save-status', { detail: { saved: false } }));
         return false;
     }
 }
 
-async function loadMindmapsFromCloud() {
+async function loadMindmapsFromCloud(strict = false) {
     const user = await getCurrentUser();
     if (!supabaseClient || !user) return [];
 
@@ -73,6 +106,7 @@ async function loadMindmapsFromCloud() {
         return data || [];
     } catch (error) {
         console.error('[VisualMind] loadMindmapsFromCloud failed. Check RLS, table name, and query:', error);
+        if (strict) throw error;
         return [];
     }
 }
@@ -94,15 +128,15 @@ async function renameMindmapInCloud(id, title) {
     }
 }
 
-async function deleteMindmapFromCloud(title) {
+async function deleteMindmapFromCloud(title, cloudId = null) {
     const user = await getCurrentUser();
     if (!supabaseClient || !user || !title) return false;
     try {
-        const { error } = await supabaseClient
+        let query = supabaseClient
             .from('hodi database')
             .delete()
-            .eq('user_id', user.id)
-            .eq('title', title);
+            .eq('user_id', user.id);
+        const { error } = await (cloudId ? query.eq('id', cloudId) : query.eq('title', title));
         if (error) throw error;
         return true;
     } catch (error) {

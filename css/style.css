@@ -1415,6 +1415,63 @@ body.app-nav-collapsed .app-nav-divider {
     display: none;
 }
 
+.library-sync-status {
+    margin: 8px 10px 0;
+    color: var(--home-muted);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+/* Weekly planning and monthly calendar share the dashboard columns. */
+.planner-divider { grid-column: 1 / -1; height: 1px; margin: 10px 0; background: var(--home-border); }
+.weekly-panel, .calendar-panel { min-width: 0; min-height: 510px; }
+.planner-navigation { display: flex; align-items: center; gap: 8px; margin: 18px 0; flex-wrap: wrap; }
+.planner-navigation > span { flex: 1; font-size: 12px; font-weight: 600; }
+.planner-button { padding: 6px 9px; border: 1px solid var(--home-border); border-radius: 6px; background: transparent; color: var(--home-text); font: inherit; font-size: 11px; cursor: pointer; }
+.planner-button:hover { background: var(--home-surface-hover); border-color: var(--home-orange); }
+.planner-button:focus-visible, .calendar-day:focus-visible, .planner-date-input:focus-visible { outline: 2px solid var(--home-orange); outline-offset: 2px; }
+.planner-daily { margin-top: 18px; border-top: 1px solid var(--home-border); }
+.planner-daily section + section { margin-top: 18px; }
+.planner-daily h3 { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; margin: 16px 0 10px; }
+.planner-daily h3 span { color: var(--home-muted); font-weight: 400; font-size: 11px; }
+.planner-empty { color: var(--home-muted); font-size: 12px; line-height: 1.6; margin: 12px 0; }
+.planner-day-task { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 12px; }
+.planner-day-task input { accent-color: var(--home-orange); }
+.planner-task-title { flex: 1; overflow-wrap: anywhere; }
+.planner-day-task.is-completed .planner-task-title { text-decoration: line-through; color: var(--home-muted); }
+.weekly-tree { margin-top: 16px; max-height: 530px; overflow: auto; }
+.weekly-item { margin: 0 0 8px calc(var(--depth) * 12px); padding: 10px; border: 1px solid var(--home-border); border-radius: 8px; cursor: grab; background: var(--home-bg); }
+.weekly-item.is-dragging { opacity: .45; }
+.weekly-item-heading { display: flex; gap: 8px; align-items: baseline; }
+.weekly-item-title { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.plan-icon { font-size: 18px; flex-shrink: 0; }
+.plan-icon-goal { color: var(--home-orange-bright); }
+.plan-icon-task { color: #6c9fda; }
+.weekly-item-actions { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.weekly-item-actions .planner-button { padding: 3px 6px; }
+.schedule-badge { display: block; margin: 6px 0 0 26px; font-size: 10px; color: #6cae8c; overflow-wrap: anywhere; }
+.planner-date-input { width: 118px; min-width: 0; background: var(--home-surface); color: var(--home-text); border: 1px solid var(--home-border); border-radius: 5px; padding: 3px; font: inherit; font-size: 10px; color-scheme: dark; }
+body[data-home-theme="light"] .planner-date-input { color-scheme: light; }
+.calendar-weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.calendar-weekdays { padding-bottom: 10px; color: var(--home-muted); font-size: 11px; text-align: center; }
+.calendar-day { display: flex; flex-direction: column; gap: 4px; min-height: 76px; min-width: 0; padding: 6px; border: 1px solid var(--home-border); border-radius: 7px; color: var(--home-text); background: transparent; text-align: left; font: inherit; cursor: pointer; }
+.calendar-day:hover { background: var(--home-surface-hover); }
+.calendar-day.is-outside { opacity: .4; }
+.calendar-day.is-today .calendar-day-number { color: var(--home-orange-bright); font-weight: 800; }
+.calendar-day.is-selected { border-color: var(--home-orange); background: rgba(232, 93, 4, .08); }
+.calendar-day.is-drag-over { outline: 2px dashed var(--home-orange); background: rgba(232, 93, 4, .18); }
+.calendar-day-number { font-size: 12px; }
+.calendar-event { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px; border-radius: 3px; background: rgba(232, 93, 4, .12); font-size: 9px; }
+.calendar-more { color: var(--home-muted); font-size: 9px; }
+.planner-dialog label { display: grid; gap: 7px; margin: 14px 0; color: var(--home-muted); font-size: 12px; }
+.planner-dialog select { width: 100%; padding: 10px; border: 1px solid var(--home-border); border-radius: 6px; background: var(--home-surface); color: var(--home-text); font: inherit; }
+@media (max-width: 720px) {
+    .calendar-panel { padding: 10px; }
+    .calendar-weekdays, .calendar-grid { gap: 2px; }
+    .calendar-day { padding: 3px; min-height: 66px; }
+    .weekly-panel, .calendar-panel { min-height: auto; }
+}
+
 /* Shared scrollbars for Home, Mindmap and Flashcard. */
 * {
     scrollbar-width: thin;

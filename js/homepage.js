@@ -192,7 +192,7 @@
                 const hasChildren = node.children && node.children.length > 0;
                 row.innerHTML = `
                     <button class="library-chevron ${hasChildren ? '' : 'is-empty'} ${collapsedFolders.has(node.id) ? 'is-collapsed' : ''}" data-action="toggle" type="button" aria-label="Toggle" aria-expanded="${!collapsedFolders.has(node.id)}"></button>
-                    ${isFolder ? '<div class="library-node-link library-folder-link">' : `<a class="library-node-link" href="${node.kind === 'flashcard' ? 'flashcard.html' : `mindmap.html?mapId=${encodeURIComponent(node.id)}`}">`}
+                    ${isFolder ? '<div class="library-node-link library-folder-link">' : `<a class="library-node-link" href="${node.kind === 'flashcard' ? 'flashcard.html' : `mindmap.html?${node.cloudId ? 'cloudId' : 'mapId'}=${encodeURIComponent(node.cloudId || node.id)}`}">`}
                         <span class="library-file-icon ${isFolder ? 'library-folder-icon' : isMindmap ? 'library-mindmap-icon' : 'library-flashcard-icon'}" aria-hidden="true">${isMindmap ? mindmapIcon : isFolder ? '' : flashcardIcon}</span>
                         <span class="library-node-name" title="${node.name}">${node.name}</span>
                     ${isFolder ? '</div>' : '</a>'}
@@ -391,9 +391,27 @@
         } else if (action === 'mindmap' || action === 'flashcard') {
             askForNode(action, (child) => { found.node.children.push(child); save(); renderTree(); });
         } else if (action === 'rename') {
-            showInputDialog(text('rename'), found.node.name, (name) => { found.node.name = name; save(); renderTree(); });
+            showInputDialog(text('rename'), found.node.name, async (name) => {
+                if (found.node.cloudId && !await renameMindmapInCloud(found.node.cloudId, name)) {
+                    window.alert('Chưa đổi tên được trên cloud. Vui lòng thử lại.');
+                    return;
+                }
+                found.node.name = name; save(); renderTree();
+            });
         } else if (action === 'delete') {
-            showConfirmDialog(text('confirmDelete'), () => { found.siblings.splice(found.siblings.indexOf(found.node), 1); save(); renderTree(); });
+            showConfirmDialog(text('confirmDelete'), async () => {
+                const maps = getMindmapDocuments([found.node]);
+                for (const map of maps) {
+                    if (map.cloudId && !await deleteMindmapFromCloud(map.name, map.cloudId)) {
+                        window.alert('Chưa xóa được trên cloud. Vui lòng thử lại.');
+                        return;
+                    }
+                }
+                const documents = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}');
+                maps.forEach(map => { delete documents[map.id]; });
+                localStorage.setItem('visualmind-local-mindmaps', JSON.stringify(documents));
+                found.siblings.splice(found.siblings.indexOf(found.node), 1); save(); renderTree();
+            });
         } else if (action === 'up') moveNode(nodeId, -1);
         else if (action === 'down') moveNode(nodeId, 1);
         else if (action === 'make-child') moveIntoParent(nodeId);
@@ -618,6 +636,7 @@
             renderTasks();
         });
         renderTasks();
+        if (window.setupWeeklyPlanner) window.setupWeeklyPlanner(dashboard);
     };
 
     setupDashboard();
@@ -627,82 +646,88 @@
     }
 
     let cloudRenderVersion = 0;
+    let cloudSyncRunning = false;
+    let cloudSyncRequested = false;
+    const syncStatus = document.createElement('p');
+    syncStatus.className = 'library-sync-status';
+    syncStatus.setAttribute('role', 'status');
+    treeElement.parentElement.appendChild(syncStatus);
     const renderCloudMindmaps = async (user) => {
-        // The dashboard mirrors the local Library tree, so both always show the same mindmaps.
-        renderDashboardLibrary();
-        return;
-        if (!cloudGrid) return;
-        const renderVersion = ++cloudRenderVersion;
         if (!user) {
-            cloudGrid.innerHTML = '<p class="project-meta">Đăng nhập để xem các mindmap đã lưu trên cloud.</p>';
+            cloudRenderVersion++;
+            syncStatus.textContent = '';
             return;
         }
-
-        const mindmaps = await loadMindmapsFromCloud();
-        if (renderVersion !== cloudRenderVersion) return;
-        if (!mindmaps.length) {
-            cloudGrid.innerHTML = '<p class="project-meta">Chưa có mindmap nào trên cloud. Hãy tạo và lưu mindmap đầu tiên của bạn.</p>';
-            return;
-        }
-
-        cloudGrid.innerHTML = '';
-        mindmaps.forEach((mindmap) => {
-            const card = document.createElement('article');
-            card.className = 'project-card';
-            const isFlashcardOnly = !mindmap.data?.center && (mindmap.data?.flashcards || []).length > 0;
-            const link = document.createElement('a');
-            link.className = 'project-card-link';
-            link.href = `${isFlashcardOnly ? 'flashcard.html' : 'mindmap.html'}?cloudId=${encodeURIComponent(mindmap.id)}`;
-            const updatedAt = mindmap.updated_at
-                ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(mindmap.updated_at))
-                : '';
-            const contentType = isFlashcardOnly ? 'Flashcard' : 'Mindmap';
-            link.innerHTML = `<div class="project-thumbnail"><span class="${isFlashcardOnly ? 'thumbnail-cards' : 'thumbnail-map'}" aria-hidden="true"></span><span class="thumbnail-label">${contentType}</span></div>`;
-            const info = document.createElement('div');
-            info.className = 'project-info';
-            info.innerHTML = `<span class="project-icon" aria-hidden="true">${isFlashcardOnly ? flashcardIcon : mindmapIcon}</span><div><h2 class="project-title"></h2><p class="project-meta"></p></div>`;
-            info.querySelector('.project-title').textContent = mindmap.title;
-            const nodeCount = Object.keys(mindmap.data?.nodes || {}).length;
-            const cardCount = (mindmap.data?.flashcards || []).length;
-            const contentSummary = isFlashcardOnly
-                ? `${cardCount} thẻ`
-                : `${nodeCount} node${cardCount ? ` · ${cardCount} thẻ` : ''}`;
-            info.querySelector('.project-meta').textContent = updatedAt
-                ? `${contentType} · ${contentSummary} · Cập nhật ${updatedAt}`
-                : `${contentType} · ${contentSummary}`;
-            link.appendChild(info);
-            card.appendChild(link);
-            const renameButton = document.createElement('button');
-            renameButton.type = 'button';
-            renameButton.className = 'project-rename-btn';
-            renameButton.textContent = currentLanguage === 'vi' ? 'Đổi tên' : 'Rename';
-            renameButton.addEventListener('click', () => {
-                showInputDialog(currentLanguage === 'vi' ? 'Đổi tên mindmap' : 'Rename mindmap', mindmap.title, async (title) => {
-                    const renamed = await renameMindmapInCloud(mindmap.id, title);
-                    if (renamed) renderCloudMindmaps(user);
-                    else window.alert(currentLanguage === 'vi' ? 'Không thể đổi tên. Vui lòng thử lại.' : 'Could not rename this mindmap. Please try again.');
-                });
-            });
-            card.appendChild(renameButton);
-            cloudGrid.appendChild(card);
-        });
-    };
-
-    if (cloudGrid) {
-        document.addEventListener('visualmind-auth-change', (event) => {
-            renderCloudMindmaps(event.detail.user);
-        });
-        if (supabaseClient) {
-            supabaseClient.auth.getSession().then(({ data: { session }, error }) => {
-                if (error) {
-                    console.error('[VisualMind] Could not restore Supabase session for the home grid:', error);
+        if (cloudSyncRunning) { cloudSyncRequested = true; return; }
+        cloudSyncRunning = true;
+        const version = ++cloudRenderVersion;
+        syncStatus.textContent = '?ang ??ng b? mindmap?';
+        try {
+            let records = await loadMindmapsFromCloud(true);
+            if (version !== cloudRenderVersion) return;
+            // Migrate existing local drafts on their original account only.
+            const ownerKey = 'visualmind-local-mindmap-owner';
+            const owner = localStorage.getItem(ownerKey);
+            if (!owner) localStorage.setItem(ownerKey, user.id);
+            const documents = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}');
+            const dirty = JSON.parse(localStorage.getItem('visualmind-dirty-mindmaps') || '{}');
+            const entries = getMindmapDocuments(getLibrary());
+            if (!owner || owner === user.id) {
+                for (const entry of entries) {
+                    if (!documents[entry.id]?.center) continue;
+                    const remote = records.find(record => record.id === entry.cloudId || record.data?.visualmindDocumentId === entry.id);
+                    if (remote && !dirty[entry.id]) continue;
+                    const saved = await saveMindmapToCloud(entry.name, documents[entry.id], entry.id, remote?.id || null);
+                    if (!saved) throw new Error('Could not upload a local mindmap');
                 }
-                renderCloudMindmaps(session?.user || null);
-            }).catch((error) => {
-                console.error('[VisualMind] Failed while restoring Supabase session for the home grid:', error);
-                renderCloudMindmaps(null);
+                records = await loadMindmapsFromCloud(true);
+            }
+            if (version !== cloudRenderVersion) return;
+            // Re-read after network requests so newly created local entries survive.
+            library = getLibrary();
+            records.forEach(record => {
+                if (!record.data?.center) return;
+                const id = record.data.visualmindDocumentId || `cloud-${record.id}`;
+                const existing = findNode(library, id);
+                if (existing) {
+                    existing.node.cloudId = record.id;
+                } else {
+                    library.push({ id, cloudId: record.id, name: record.title, kind: 'mindmap', children: [] });
+                }
             });
+            localStorage.setItem(storageKey, JSON.stringify(library));
+            renderTree();
+            syncStatus.textContent = '?? ??ng b? mindmap';
+        } catch (error) {
+            console.error('[VisualMind] Library cloud sync failed:', error);
+            syncStatus.textContent = 'Ch?a ??ng b? ???c. B?n tr?n m?y v?n ???c gi?. B?m ?? th? l?i.';
+            syncStatus.onclick = () => renderCloudMindmaps(user);
+        } finally {
+            cloudSyncRunning = false;
+            if (cloudSyncRequested) {
+                cloudSyncRequested = false;
+                setTimeout(() => supabaseClient.auth.getSession().then(({data}) => renderCloudMindmaps(data.session?.user)), 0);
+            }
         }
+    };
+    document.addEventListener('visualmind-auth-change', event => {
+        // Leave the auth callback before making another Supabase request.
+        setTimeout(() => renderCloudMindmaps(event.detail.user), 0);
+    });
+    document.addEventListener('visualmind-cloud-save-status', event => {
+        syncStatus.textContent = event.detail.saved ? 'Đã lưu mindmap lên cloud' : 'Chưa lưu được lên cloud. Bản trên máy vẫn được giữ.';
+    });
+    window.addEventListener('online', () => {
+        if (supabaseClient) supabaseClient.auth.getSession().then(({ data }) => renderCloudMindmaps(data.session?.user));
+    });
+    if (supabaseClient) {
+        supabaseClient.auth.getSession().then(({ data, error }) => {
+            if (error) throw error;
+            return renderCloudMindmaps(data.session?.user);
+        }).catch(error => {
+            console.error('[VisualMind] Session restore failed:', error);
+            syncStatus.textContent = 'Kh?ng th? k?t n?i t?i kho?n. Vui l?ng t?i l?i trang.';
+        });
     }
 
     const syncSidebar = () => {
