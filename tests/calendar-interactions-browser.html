@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../css/style.css">
+<body class="home-page" data-home-theme="dark">
+<section id="dashboard"><section class="todo-panel"></section></section>
+<pre id="result">RUNNING</pre>
+<script src="../js/dashboard-i18n.js"></script>
+<script src="../js/task-editor.js"></script>
+<script src="../js/calendar-model.js"></script>
+<script src="../js/calendar-editor.js"></script>
+<script src="../js/planner.js"></script>
+<script>
+try {
+    const assert = (value, message) => { if (!value) throw Error(message); };
+    const M = CalendarModel, today = M.key(new Date());
+    const read = () => JSON.parse(localStorage.getItem('visualmind-weekly-planner'));
+    localStorage.setItem('visualmind-week-hour-height', '64');
+    localStorage.setItem('visualmind-weekly-planner', JSON.stringify({ items: [], recurring: [] }));
+    setupWeeklyPlanner(document.querySelector('#dashboard'));
+    document.querySelector('[data-calendar-view="week"]').click();
+    const grid = document.querySelector('[data-calendar]');
+    assert(document.querySelector('.calendar-now-line'), 'Current time line visible');
+    if (new Date().getHours() > 1) assert(grid.scrollTop > 0, 'Entering week auto-scrolls');
+    const timeline = () => document.querySelector(`[data-timeline-date="${today}"]`);
+    const gesture = (node, start, end, base = node) => {
+        grid.scrollTop = Math.max(0, start / 60 * 64 - 100);
+        node.setPointerCapture = () => {}; node.hasPointerCapture = () => false;
+        const top = base.getBoundingClientRect().top;
+        node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 1, clientY: top + start / 60 * 64 }));
+        if (end !== undefined) node.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientY: top + end / 60 * 64 }));
+        node.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, clientY: top + (end ?? start) / 60 * 64 }));
+    };
+    gesture(timeline(), 540, 630);
+    let form = document.querySelector('.calendar-editor');
+    assert(form.elements.fromTime.value === '09:00' && form.elements.endToTime.value === '10:30', 'Drag-create selects exact range');
+    form.elements.title.value = 'Created on grid'; form.requestSubmit();
+    const taskId = read().items[0].id;
+    assert(read().items[0].durationMinutes === 90, 'Creation saves duration');
+    const event = () => document.querySelector(`[data-calendar-item="${taskId}"]`);
+    const transfer = new DataTransfer();
+    event().dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: transfer }));
+    timeline().dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer, clientY: timeline().getBoundingClientRect().top + 11 * 64 }));
+    assert(read().items[0].fromTime === '11:00' && read().items[0].endToTime === '12:30', 'Same-day move changes time and preserves duration');
+    // Keyboard resizing shares the same persistence path and works without a mouse.
+    event().querySelector('.calendar-resize-handle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    assert(read().items[0].durationMinutes === 105, 'Resize grows by 15 minutes');
+    gesture(event().querySelector('.calendar-resize-handle'), 765, 810, timeline());
+    assert(read().items[0].durationMinutes === 150, 'Pointer resize updates end time');
+    event().querySelector('.calendar-event-title').click();
+    form = document.querySelector('.calendar-editor');
+    form.elements.fromTime.value = '23:00'; form.elements.toDate.value = M.addDays(today, 1); form.elements.endToTime.value = '01:00'; form.requestSubmit();
+    assert(read().items[0].durationMinutes === 120, 'Overnight editor saves full interval');
+    assert(M.segments(read().items, M.addDays(today, 1))[0].origin === today, 'Continuation belongs to original occurrence');
+    // Create a recurring series from the day list, then edit one occurrence only.
+    document.querySelector('[data-add-recurring]').click();
+    form = document.querySelector('.calendar-editor'); form.elements.title.value = 'Repeat';
+    form.elements.repeat.value = 'daily'; form.elements.repeat.onchange(); form.requestSubmit();
+    let series = read().recurring[0];
+    assert(M.occurs(series, M.addDays(today, 3)), 'New all-day recurring task repeats');
+    document.querySelector(`[data-calendar-item="${series.id}"] .calendar-event-title`).click();
+    document.querySelector('.calendar-editor').requestSubmit();
+    form = document.querySelector('.calendar-editor'); form.elements.title.value = 'Only once'; form.requestSubmit();
+    series = read().recurring[0];
+    assert(series.title === 'Repeat' && series.excludedDates.length === 1, 'Single edit does not mutate series title');
+    assert(read().items.some(item => item.title === 'Only once' && item.seriesId === series.id), 'Single edit creates linked exception');
+    // Edit the remaining series with a custom interval and a definite end.
+    const nextOccurrence = [...document.querySelectorAll(`[data-calendar-item="${series.id}"] .calendar-event-title`)][0];
+    if (nextOccurrence) nextOccurrence.click();
+    else {
+        const seriesState = read();
+        const editor = setupCalendarEditor(() => seriesState, () => {
+            localStorage.setItem('visualmind-weekly-planner', JSON.stringify(seriesState));
+            document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));
+        });
+        editor.edit(seriesState.recurring[0], M.addDays(today, 1));
+    }
+    form = document.querySelector('.calendar-editor'); form.elements.scope.value = 'all'; form.requestSubmit();
+    form = document.querySelector('.calendar-editor'); form.elements.title.value = 'Changed series';
+    form.elements.repeat.value = 'weekly'; form.elements.repeat.onchange(); form.elements.repeatInterval.value = '2';
+    form.querySelectorAll('[name="repeatDay"]').forEach(node => { node.checked = ['1', '3', '5'].includes(node.value); });
+    form.elements.repeatUntil.value = M.addDays(today, 60);
+    form.requestSubmit();
+    const updated = read().recurring[0];
+    assert(updated.title === 'Changed series' && updated.repeatInterval === 2 && updated.repeatDays.join(',') === '1,3,5', 'Whole-series edit stores custom weekdays and interval');
+    assert(read().items.some(item => item.title === 'Only once'), 'Whole-series edit preserves detached exception');
+    // Cancel a new task without leaving a draft behind.
+    const before = read().items.length;
+    gesture(timeline(), 780);
+    document.querySelector('.calendar-editor [data-cancel]').click();
+    assert(read().items.length === before, 'Cancel creates no task');
+    document.querySelector('#result').textContent = 'PASS: create, move, resize, overnight, recurrence, one-occurrence editing, cancellation, now line, auto-scroll.';
+} catch (error) { document.querySelector('#result').textContent = 'FAIL: ' + error.stack; }
+</script>

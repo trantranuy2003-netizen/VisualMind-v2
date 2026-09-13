@@ -494,8 +494,8 @@
             if (!data.nextFlashcardId && mindmap.flashcards.length) {
                 mindmap.nextFlashcardId = Math.max(...mindmap.flashcards.map(card => card.id || 0)) + 1;
             }
-            history = [];
-            historyIndex = -1;
+            history = [JSON.parse(JSON.stringify(mindmap))];
+            historyIndex = 0;
             viewport = { x: 0, y: 0, zoom: 1 };
             fcOrder = mindmap.flashcards.map(card => card.id);
             fcIndex = 0;
@@ -506,6 +506,7 @@
                 renderFlashcardStudy();
                 renderFlashcardList();
             }
+            if (localMindmapId) window.recordMindmapVersion?.(localMindmapId, mindmap);
             return true;
         }
 
@@ -527,6 +528,7 @@
                     localStorage.setItem('visualmind-dirty-mindmaps', JSON.stringify(dirty));
                 }
                 if (localMindmapId) localStorage.setItem(lastMindmapKey, localMindmapId);
+                window.recordMindmapVersion?.(documentId, mindmap);
             } catch (error) { console.warn('[VisualMind] Could not save local mindmap:', error); }
         }
 
@@ -952,6 +954,7 @@
 
         // ============ RENDER ============
         function render() {
+            if (!canvas || !ctx) return;
             const canvasBg = getCanvasBg();
             const gridDot = getGridDot();
 
@@ -959,7 +962,7 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const dotSpacing = 22 * viewport.zoom;
-            if (dotSpacing > 6) {
+            if (dotSpacing > 6 && !window.mmExporting) {
                 const offsetX = ((canvas.width / 2 + viewport.x) % dotSpacing + dotSpacing) % dotSpacing;
                 const offsetY = ((canvas.height / 2 + viewport.y) % dotSpacing + dotSpacing) % dotSpacing;
                 ctx.fillStyle = gridDot;
@@ -1055,6 +1058,7 @@
                 document.getElementById('selectionBox').style.display = 'none';
             }
             updateSelectionCount();
+            window.onMindmapRender?.();
         }
 
         function isNodeHidden(nodeId) {
@@ -1107,7 +1111,7 @@
             roundRectPath(x, y, width, height, radius);
             ctx.stroke();
 
-            if (node.children && node.children.length > 0 && !isCenter) {
+            if (node.children && node.children.length > 0 && !isCenter && !window.mmExporting) {
                 const size = 16 / viewport.zoom;
                 const cx = x + width - size / 2 - 4;
                 const cy = y + 4 + size / 2;
@@ -1557,10 +1561,10 @@
         }
 
         function saveHistory() {
-            historyIndex++;
-            history = history.slice(0, historyIndex);
+            history = history.slice(0, historyIndex + 1);
             history.push(JSON.parse(JSON.stringify(mindmap)));
             if (history.length > 50) history.shift();
+            historyIndex = history.length - 1;
             saveLocalMindmap();
             scheduleCloudAutosave();
         }
@@ -1603,16 +1607,20 @@
         });
 
         function undo() {
+            if (typeof closeInlineEdit === 'function') closeInlineEdit();
             if (historyIndex > 0) { historyIndex--;
                 mindmap = JSON.parse(JSON.stringify(history[historyIndex]));
+                selection.nodeId = null; selection.selectedIds = [];
                 saveLocalMindmap();
                 scheduleCloudAutosave();
                 render(); }
         }
 
         function redo() {
+            if (typeof closeInlineEdit === 'function') closeInlineEdit();
             if (historyIndex < history.length - 1) { historyIndex++;
                 mindmap = JSON.parse(JSON.stringify(history[historyIndex]));
+                selection.nodeId = null; selection.selectedIds = [];
                 saveLocalMindmap();
                 scheduleCloudAutosave();
                 render(); }
@@ -2835,8 +2843,8 @@
                             mindmap.links = data.links || [];
                             mindmap.groups = data.groups || [];
 
-                            history = [];
-                            historyIndex = -1;
+                            history = [JSON.parse(JSON.stringify(mindmap))];
+                            historyIndex = 0;
                             viewport = { x: 0, y: 0, zoom: 1 };
                             updateZoomDisplay();
                             fcOrder = mindmap.flashcards.map(c => c.id);

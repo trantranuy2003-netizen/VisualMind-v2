@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../css/style.css">
+<body class="home-page" data-home-theme="dark">
+<section id="dashboard"><section class="todo-panel"></section></section>
+<pre id="result">RUNNING</pre>
+<script src="../js/dashboard-i18n.js"></script>
+<script src="../js/task-editor.js"></script>
+<script src="../js/calendar-model.js"></script>
+<script src="../js/calendar-editor.js"></script>
+<script src="../js/planner.js"></script>
+<script>
+try {
+    const assert = (value, message) => { if (!value) throw Error(message); };
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const items = [
+        { id: 'timed', title: 'Morning work', fromTime: '09:00', endToTime: '10:30' },
+        { id: 'overlap', title: 'Meeting', fromTime: '09:30', endToTime: '10:00' },
+        { id: 'all-day', title: 'Read a book' }
+    ].map(item => ({ ...item, dates: [date], completedDates: [] }));
+    localStorage.setItem('visualmind-weekly-planner', JSON.stringify({ items, recurring: [] }));
+    localStorage.setItem('visualmind-week-hour-height', '64');
+    window.setupWeeklyPlanner(document.querySelector('#dashboard'));
+    document.querySelector('[data-calendar-view="week"]').click();
+    const grid = document.querySelector('[data-calendar]');
+    const event = () => grid.querySelector('[data-calendar-item="timed"]');
+    assert(grid.querySelectorAll('.week-hour-label').length === 24, '24 hour ticks');
+    assert(event().style.top === '576px' && event().style.height === '96px', 'Time and duration determine placement');
+    assert(event().style.width === '50%', 'Overlapping events use separate lanes');
+    assert(grid.querySelector('.week-all-day [data-calendar-item="all-day"]'), 'Untimed task remains visible');
+    document.querySelector('[data-zoom-in]').click();
+    assert(event().style.top === '864px' && event().style.height === '144px', 'Zoom scales position and duration');
+    assert(localStorage.getItem('visualmind-week-hour-height') === '96', 'Zoom persists');
+    for (let i = 0; i < 8; i++) document.querySelector('[data-zoom-out]').click();
+    assert(document.querySelector('[data-zoom-out]').disabled, 'Zoom has a minimum');
+    event().querySelector('input').click();
+    assert(JSON.parse(localStorage.getItem('visualmind-weekly-planner')).items[0].completedDates.includes(date), 'Completion still saves');
+    document.querySelector('[data-calendar-view="month"]').click();
+    assert(!grid.querySelector('.week-time-axis') && !document.querySelector('[data-zoom-in]'), 'Month view keeps its original layout');
+    document.querySelector('#result').textContent = 'PASS: hour ticks, timed placement, overlap, all-day tasks, zoom, persistence, completion, month view.';
+} catch (error) { document.querySelector('#result').textContent = 'FAIL: ' + error.stack; }
+</script>

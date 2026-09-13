@@ -66,6 +66,7 @@ function browser() {
     });
     const cloudSource = fs.readFileSync(path.join(root, 'js/supabase-client.js'), 'utf8');
     vm.runInContext(cloudSource.slice(0, cloudSource.indexOf('function showAuthModal')), context);
+    vm.runInContext(fs.readFileSync(path.join(root, 'js/dashboard-i18n.js'), 'utf8'), context);
     const homeSource = fs.readFileSync(path.join(root, 'js/homepage.js'), 'utf8');
     vm.runInContext(homeSource.replace(/\}\)\(\);\s*$/, 'window.testSync = renderCloudMindmaps; })();'), context);
     return {

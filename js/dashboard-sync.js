@@ -62,7 +62,7 @@
             if (saved) apply(saved.snapshot);
             else if (previousOwner) apply(empty());
         }
-        if (!account) { status('Dashboard được lưu trên máy. Đăng nhập để đồng bộ.'); return; }
+        if (!account) { status(''); return; }
         if (!read(cacheKey(account), null)) cache();
         status('Đang tải dashboard…');
         try {
@@ -90,7 +90,7 @@
     document.addEventListener('visualmind-dashboard-change', () => {
         const record = cache(); record.edited = true;
         localStorage.setItem(cacheKey(owner), JSON.stringify(record));
-        status(owner ? 'Dashboard có thay đổi đang chờ lưu…' : 'Dashboard được lưu trên máy. Đăng nhập để đồng bộ.');
+        status(owner ? 'Dashboard có thay đổi đang chờ lưu…' : '');
         clearTimeout(timer); timer = setTimeout(flush, 600);
     });
     document.addEventListener('visualmind-auth-change', event => { setTimeout(() => connect(event.detail.user), 0); });

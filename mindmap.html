@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mindmap-tools.css">
 </head>
 <body>
     <aside class="app-nav-sidebar" id="appNavSidebar" aria-label="Điều hướng ứng dụng">
@@ -15,7 +16,7 @@
             <b>Hodi</b>
         </button>
         <nav class="app-nav-links">
-            <a class="app-nav-link" href="index.html"><span>⌂</span><b data-i18n="home">Trang chủ</b></a>
+            <a class="app-nav-link" href="index.html"><span><svg class="home-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 3l9 8M5 10v11h14V10M9 21v-7h6v7M16 6V3h3v6" /></svg></span><b data-i18n="home">Trang chủ</b></a>
             <a class="app-nav-link active app-nav-create-mindmap" data-create-mindmap href="mindmap.html?new=1"><span><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg></span><b data-i18n="mindmap">Mindmap</b></a>
             <a class="app-nav-link" href="flashcard.html"><span><svg class="flashcard-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg></span><b data-i18n="flashcard">Flashcard</b></a>
         </nav>
@@ -32,7 +33,7 @@
         </section>
     </aside>
     <div class="app-topbar">
-        <a class="app-tab-btn" href="index.html">⌂ Trang chủ</a>
+        <a class="app-tab-btn" href="index.html"><svg class="home-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 3l9 8M5 10v11h14V10M9 21v-7h6v7M16 6V3h3v6" /></svg> Trang chủ</a>
         <a class="app-tab-btn active" href="mindmap.html"><svg class="mindmap-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5A3 3 0 0 0 4 5.2a3.2 3.2 0 0 0 .5 5.9A3 3 0 0 0 7 16.5a3 3 0 0 0 2.5-1.3V19M14.5 3.5A3 3 0 0 1 20 5.2a3.2 3.2 0 0 1-.5 5.9 3 3 0 0 1-2.5 5.4 3 3 0 0 1-2.5-1.3V19M9.5 3.5v10M14.5 3.5v10M9.5 8.5h5" /></svg> Mindmap</a>
         <a class="app-tab-btn" href="flashcard.html"><svg class="flashcard-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="13" height="15" rx="2" /><path d="M8 8h7M8 11h5M8 14h3" /><path d="M18 7.5h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10" /></svg> Flashcard</a>
     </div>
@@ -67,11 +68,6 @@
                                 <li>Thụt vào 2 khoảng trắng cho mỗi cấp nhánh.</li>
                                 <li>Dùng <code>**Tên nhánh**</code> để in đậm (không bắt buộc).</li>
                             </ol>
-                            <pre>Du lịch Đà Nẵng
-  **Lịch trình**
-    Ngày 1
-    Ngày 2
-  Chi phí</pre>
                         </div>
                         <button class="action-btn" type="button" onclick="copyMindmapAIPrompt()">✨ Sao chép prompt cho AI</button>
                         <textarea id="textInput" placeholder="Paste outline text here:&#10;Chủ đề trung tâm 📘&#10;  **Nhánh 1** 📊&#10;    Ý con 1.1&#10;    Ý con 1.2" style="min-height:150px;"></textarea>
@@ -86,8 +82,8 @@
                     <div class="tab-content" id="tab-export" style="display:none;">
                         <div class="section-title" data-key="tab-export">💾 Export</div>
                         <button class="action-btn" data-key="btn-save-json" onclick="showSaveModal()">💾 Save as JSON</button>
-                        <button class="action-btn" data-key="btn-save-image" onclick="startSnippingTool('image')">🖼️ Save as Image</button>
-                        <button class="action-btn" data-key="btn-save-pdf" onclick="startSnippingTool('pdf')">📄 Save as PDF</button>
+                        <button class="action-btn" data-key="btn-save-image" onclick="openMindmapExport('png')">🖼️ Save as Image</button>
+                        <button class="action-btn" data-key="btn-save-pdf" onclick="openMindmapExport('pdf')">📄 Save as PDF</button>
                     </div>
                 </div>
             </div>
@@ -96,7 +92,6 @@
             <canvas id="canvas"></canvas>
             <div class="selection-box" id="selectionBox"></div>
             <div class="selection-count" id="selectionCount"></div>
-            <div class="canvas-node-hint">Chọn một node rồi bấm <b>+ Thêm node</b> để tạo nhánh mới.</div>
             <div class="controls">
                 <button class="control-btn create-node-btn" onclick="addNodeFromToolbar()" title="Thêm node vào nhánh đang chọn">＋ Thêm node</button>
                 <button class="control-btn" onclick="zoomIn()" title="Zoom in">+</button>
@@ -128,7 +123,14 @@
     <script src="js/supabase-client.js"></script>
     <script src="js/app.js"></script>
     <script src="js/mindmap.js"></script>
+    <script src="js/mindmap-language.js"></script>
+    <script src="js/mindmap-tools.js"></script>
+    <script src="js/mindmap-versions.js"></script>
+    <script src="js/mindmap-export.js"></script>
+    <script src="js/mindmap-learning.js"></script>
+    <script src="js/dashboard-sync.js"></script>
     <script src="js/navigation.js"></script>
+    <script src="js/dashboard-i18n.js"></script>
     <script src="js/homepage.js"></script>
 </body>
 </html>

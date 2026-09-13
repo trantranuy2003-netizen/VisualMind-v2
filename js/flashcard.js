@@ -135,6 +135,13 @@
 
             badgeEl.style.display = (card.linkedNodeId != null && mindmap.nodes[card.linkedNodeId]) ? 'inline-block' :
                 'none';
+            if (card.mindmapSource?.mapId && card.mindmapSource.nodeId != null) {
+                badgeEl.style.display = 'inline-block'; badgeEl.replaceChildren();
+                const link = document.createElement('a');
+                link.href = 'mindmap.html?mapId=' + encodeURIComponent(card.mindmapSource.mapId) + '&nodeId=' + encodeURIComponent(card.mindmapSource.nodeId);
+                link.textContent = localStorage.getItem('visualmind-language') === 'en' ? 'Source branch ↗' : 'Nhánh nguồn ↗';
+                link.onclick = event => event.stopPropagation(); badgeEl.appendChild(link);
+            } else badgeEl.textContent = '🔗 Đã link với node';
 
             if (historyEl && card.attempts && card.attempts.length > 0) {
                 const historyHtml = card.attempts.slice().reverse().map(a => {
@@ -564,7 +571,10 @@
                     const saved = JSON.parse(localStorage.getItem('visualmind-local-mindmaps') || '{}')['flashcard-workspace'];
                     if (saved) {
                         mindmap = { center: saved.center || null, nodes: saved.nodes || {}, nextId: saved.nextId || 1, links: saved.links || [], groups: saved.groups || [], flashcards: saved.flashcards || [], nextFlashcardId: saved.nextFlashcardId || 1 };
-                        fcOrder = mindmap.flashcards.map(card => card.id);
+                        const deckId = new URLSearchParams(location.search).get('deckId');
+                        fcOrder = mindmap.flashcards.filter(card => !deckId || card.deckId === deckId).map(card => card.id);
+                        if (!fcOrder.length) fcOrder = mindmap.flashcards.map(card => card.id);
+                        history = [JSON.parse(JSON.stringify(mindmap))]; historyIndex = 0;
                         renderFlashcardStudy();
                         renderFlashcardList();
                     }

@@ -1,0 +1,129 @@
+<!doctype html>
+<meta charset="utf-8">
+<section id="dashboard"><section class="todo-panel"></section><div class="matrix-dropzone" data-task-list="do"></div></section>
+<pre id="result">RUNNING</pre>
+<script src="../js/dashboard-i18n.js"></script>
+<script src="../js/task-editor.js"></script>
+<script src="../js/calendar-model.js"></script>
+<script src="../js/calendar-editor.js"></script>
+<script src="../js/planner.js"></script>
+<script>
+try {
+    const assert = (value, message) => { if (!value) throw Error(message); };
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    localStorage.setItem('visualmind-eisenhower-tasks', '[]');
+    localStorage.setItem('visualmind-weekly-planner', JSON.stringify({ items: [{ id: 'scheduled', title: 'Scheduled', dates: [date], completedDates: [] }], recurring: [{ id: 'recurring', title: 'Recurring', repeat: 'daily', start: date, completedDates: [] }] }));
+    window.setupWeeklyPlanner(document.querySelector('#dashboard'));
+    for (const id of ['scheduled', 'recurring']) {
+        const row = document.querySelector(`[data-plan-row="${id}"]`);
+        const transfer = new DataTransfer();
+        row.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: transfer }));
+        assert(transfer.getData('application/x-hodi-matrix-plan') === id, 'Drag must carry original task ID');
+        window.movePlannerToMatrix(id, 'do');
+    }
+    assert(document.querySelectorAll('.matrix-dropzone [data-plan-row]').length === 2, 'Both task types must appear in matrix');
+    document.querySelector('.matrix-dropzone [data-plan-row="recurring"] [aria-label="Bỏ khỏi ma trận"]').click();
+    assert(!document.querySelector('.matrix-dropzone [data-plan-row="recurring"]') && document.querySelector('[data-recurring] [data-plan-row="recurring"]'), 'Matrix remove must preserve source task');
+    window.movePlannerToMatrix('recurring', 'do');
+    for (const title of ['Parent', 'Child']) {
+        document.querySelector('[data-add-plan]').click();
+        const create = document.querySelector('.planner-dialog'); create.elements.title.value = title; create.requestSubmit();
+    }
+    const readPlanner = () => JSON.parse(localStorage.getItem('visualmind-weekly-planner'));
+    const parentId = readPlanner().items.find(item => item.title === 'Parent').id;
+    const childId = readPlanner().items.find(item => item.title === 'Child').id;
+    const dragInto = (source, target) => {
+        const transfer = new DataTransfer();
+        document.querySelector(`[data-weekly-id="${source}"]`).dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: transfer }));
+        document.querySelector(target).dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+    };
+    dragInto(childId, `[data-weekly-id="${parentId}"]`);
+    assert(readPlanner().items.find(item => item.id === childId).parentId === parentId, 'Drop must make child');
+    dragInto(parentId, `[data-weekly-id="${childId}"]`);
+    assert(readPlanner().items.find(item => item.id === parentId).parentId === null, 'Cannot create ancestor cycle');
+    dragInto(childId, '.weekly-root-drop');
+    assert(readPlanner().items.find(item => item.id === childId).parentId === null, 'Root drop must detach child');
+    document.querySelector('[data-calendar-view="week"]').click();
+    assert(document.querySelectorAll('[data-calendar] .calendar-day').length === 7, 'Week view must show seven days');
+    const firstDay = document.querySelector('[data-calendar] .calendar-day').dataset.date;
+    document.querySelector('.calendar-panel [aria-label="Tuần sau"]').click();
+    assert(document.querySelector('[data-calendar] .calendar-day').dataset.date !== firstDay, 'Week navigation must change dates');
+    document.querySelector('.calendar-panel [aria-label="Hôm nay"]').click();
+    const transfer = new DataTransfer(); transfer.setData('application/x-hodi-plan', childId);
+    document.querySelector('.calendar-day.is-today').dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+    assert(readPlanner().items.find(item => item.id === childId).dates.includes(date), 'Week calendar drop must schedule task');
+    document.querySelector('[data-calendar-view="month"]').click();
+    assert(document.querySelectorAll('[data-calendar] .calendar-day').length >= 28, 'Month view must remain available');
+    document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] [aria-label="Sửa công việc"]').click();
+    let form = document.querySelector('.task-editor');
+    form.elements.fromTime.click();
+    assert(document.querySelector('.digital-clock'), 'Click time opens digital clock');
+    const hours = document.querySelector('.digital-clock select[aria-label="Giờ"]');
+    assert(hours.options.length === 24 && hours.options[23].textContent === '23', 'Hours must use 24-hour format');
+    hours.value = '23'; hours.dispatchEvent(new Event('change'));
+    document.querySelector('[aria-label="Tăng phút"]').click();
+    document.querySelector('[aria-label="Xác nhận giờ"]').click();
+    assert(form.elements.fromTime.value === '23:01', 'Mouse controls must set hour and minute');
+    form.elements.fromDate.click();
+    assert(document.querySelector('.task-picker-calendar'), 'Click date opens calendar');
+    document.querySelector('[aria-label="Chọn hôm nay"]').click();
+    assert(form.elements.fromDate.value === date.slice(5, 7) + '/' + date.slice(8) + '/' + date.slice(0, 4), 'Calendar must use mm/dd/yyyy');
+    form.elements.title.value = 'Edited <safe>';
+    form.elements.flag.value = 'red';
+    form.elements.kind.value = 'goal';
+    form.elements.category.value = 'Custom category';
+    form.elements.categoryColor.value = '#b4e7c8';
+    const displayDate = date.slice(5, 7) + '/' + date.slice(8) + '/' + date.slice(0, 4);
+    assert(form.querySelectorAll('.task-time-fields input').length === 4, 'Only one time and date per endpoint');
+    form.elements.fromDate.value = displayDate;
+    form.elements.toDate.value = displayDate;
+    form.elements.fromTime.value = '09:00';
+    form.elements.endToTime.value = '12:00';
+    form.requestSubmit();
+    const saved = JSON.parse(localStorage.getItem('visualmind-weekly-planner')).items[0];
+    assert(saved.title === 'Edited <safe>' && saved.flag === 'red' && saved.category === 'Custom category' && saved.endToTime === '12:00', 'All editor fields must persist');
+    assert(document.querySelector('[data-scheduled] .todo-item-title').textContent === saved.title, 'Original row must update safely');
+    const heading = document.querySelector('[data-scheduled] .task-title-row');
+    assert(saved.kind === 'goal' && document.querySelector('[data-scheduled] [data-plan-row="scheduled"] .goal-target-icon')?.querySelectorAll('circle').length === 3, 'Goal kind must save and display');
+    assert(heading.firstElementChild.textContent === '🚩' && heading.lastElementChild.className === 'task-meta-category', 'Flag must precede title and category must be on its right');
+    assert(document.querySelector('[data-scheduled] .task-content').lastElementChild.className === 'task-meta', 'Schedule must appear below title');
+    document.querySelector('.matrix-dropzone .goal-check span').click();
+    assert(document.querySelector('[data-scheduled] input').checked, 'Completion must update original task');
+    document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] [aria-label="Sửa công việc"]').click();
+    form = document.querySelector('.task-editor');
+    form.elements.endToTime.value = '08:00';
+    form.requestSubmit();
+    assert(document.querySelector('.task-editor-error').textContent, 'Invalid time must be rejected');
+    form.elements.fromTime.value = '';
+    form.requestSubmit();
+    assert(!document.querySelector('form.task-editor'), 'Start time must be optional');
+    assert(JSON.parse(localStorage.getItem('visualmind-weekly-planner')).items[0].endToTime === '08:00', 'End time must persist without start time');
+    document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] [aria-label="Sửa công việc"]').click();
+    form = document.querySelector('form.task-editor');
+    form.querySelector('[data-trash]').click();
+    assert(!document.querySelector('[data-plan-row="scheduled"]'), 'Trash must remove all active representations');
+    window.showTaskTrash();
+    assert(document.querySelector('[data-trash-list]').textContent.includes('Edited <safe>'), 'Trashed task must remain recoverable');
+    document.querySelector('[data-trash-list] button').click();
+    assert(document.querySelector('[data-scheduled] [data-plan-row="scheduled"]'), 'Restore must recover task');
+    assert(readPlanner().items[0].categoryColor === '#b4e7c8', 'Category color must persist');
+    document.querySelector('[data-scheduled] [data-plan-row="scheduled"] [aria-label="Gỡ danh mục"]').click();
+    assert(readPlanner().items[0].category === '', 'Category chip x must remove category');
+    document.querySelector('[data-calendar-view="week"]').click();
+    const recurringEvent = document.querySelector(`[data-date="${date}"] [data-calendar-item="recurring"]`);
+    recurringEvent.querySelector('input').click();
+    assert(readPlanner().recurring[0].completedDates.includes(date), 'Calendar tick must save completion');
+    const otherCell = [...document.querySelectorAll('[data-calendar] .calendar-day')].find(cell => cell.dataset.date !== date);
+    const targetDate = otherCell.dataset.date;
+    const movedTransfer = new DataTransfer();
+    document.querySelector(`[data-date="${date}"] [data-calendar-item="recurring"]`).dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: movedTransfer }));
+    otherCell.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: movedTransfer }));
+    assert(!document.querySelector(`[data-date="${date}"] [data-calendar-item="recurring"]`), 'Move must remove old occurrence');
+    const movedEvent = document.querySelector(`[data-date="${targetDate}"] [data-calendar-item="recurring"]`);
+    assert(movedEvent && movedEvent.querySelector('input').checked, 'Move must preserve completion at new date');
+    movedEvent.querySelector('[aria-label="Bỏ khỏi ngày này"]').click();
+    assert(!document.querySelector(`[data-date="${targetDate}"] [data-calendar-item="recurring"]`) && !readPlanner().recurring[0].trashedAt, 'Calendar x must remove occurrence without trashing series');
+    document.querySelector('#result').textContent = 'PASS: drag identity, both matrix task types, editing fields, shared completion, time validation, trash and restore.';
+} catch (error) { document.querySelector('#result').textContent = `FAIL: ${error.stack}`; }
+</script>

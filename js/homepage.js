@@ -516,14 +516,15 @@
     const setupDashboard = () => {
         if (!cloudGrid) return;
         const storageKey = 'visualmind-eisenhower-tasks';
+        const today = new Date();
         const dashboard = document.createElement('section');
         dashboard.className = 'learning-dashboard';
         dashboard.innerHTML = `
             <section class="todo-panel" aria-labelledby="todoTitle">
-                <div class="dashboard-panel-heading"><div><p class="dashboard-kicker">Hôm nay</p><h2 id="todoTitle">To-do list</h2></div><span class="task-count" data-task-count>0 việc</span></div>
-                <form class="todo-create-form" data-todo-form><input data-todo-input maxlength="160" placeholder="Thêm việc cần làm..." aria-label="Việc cần làm"><button type="submit">Thêm</button></form>
+                <div class="dashboard-panel-heading"><div><p class="dashboard-kicker">Hôm nay, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}</p><h2 id="todoTitle" data-dashboard-i18n="tasks">Danh sách công việc</h2></div><button type="button" class="trash-open" data-task-trash aria-label="Thùng rác" title="Thùng rác">${window.taskTrashIcon}</button></div>
+                <section class="todo-group"><div class="todo-group-heading"><h3 data-dashboard-i18n="newlyAdded">Việc mới</h3><button type="button" class="todo-group-add" data-add-inbox aria-label="Thêm việc mới">+</button></div>
                 <div class="todo-inbox-list" data-task-list="inbox" aria-label="Việc chưa phân loại"></div>
-                <p class="todo-drop-hint">Kéo một việc vào ma trận để ưu tiên.</p>
+                </section>
             </section>
             <section class="eisenhower-panel" aria-labelledby="matrixTitle">
                 <div class="dashboard-panel-heading"><div><p class="dashboard-kicker">Ưu tiên công việc</p><h2 id="matrixTitle">Ma trận Eisenhower</h2></div><span class="matrix-help">Kéo & thả</span></div>
@@ -551,13 +552,11 @@
         };
 
         const renderTasks = () => {
-            dashboard.querySelector('[data-task-count]').textContent = `${tasks.length} việc`;
             dashboard.querySelectorAll('[data-task-list]').forEach((list) => {
                 const status = list.dataset.taskList;
-                const grouped = tasks.filter((task) => task.status === status);
+                const grouped = tasks.filter((task) => !task.trashedAt && task.status === status);
                 list.innerHTML = '';
                 if (!grouped.length) {
-                    list.innerHTML = '<p class="todo-empty">Thả việc vào đây</p>';
                     return;
                 }
                 grouped.forEach((task) => {
@@ -566,24 +565,57 @@
                     item.draggable = true;
                     item.dataset.taskId = task.id;
                     item.classList.toggle('is-completed', Boolean(task.completed));
-                    item.innerHTML = '<span class="todo-grip" aria-hidden="true">⠿</span><label class="todo-check"><input type="checkbox" data-toggle-task><span aria-hidden="true"></span></label><span class="todo-item-title"></span><button type="button" data-delete-task aria-label="Xóa việc">×</button>';
+                    item.innerHTML = '<span class="todo-grip" aria-hidden="true">⠿</span><label class="todo-check"><input type="checkbox" data-toggle-task><span aria-hidden="true"></span></label><span class="todo-item-title"></span><button type="button" data-edit-task aria-label="Sửa công việc">🖊</button>';
                     item.querySelector('[data-toggle-task]').checked = Boolean(task.completed);
-                    item.querySelector('.todo-item-title').textContent = task.title;
+                    item.querySelector('[data-toggle-task]').setAttribute('aria-label', 'Hoàn thành: ' + task.title);
+                    if (task.kind === 'goal') {
+                        item.querySelector('.todo-check').classList.add('goal-check');
+                        item.querySelector('.todo-check span').innerHTML = window.goalIcon;
+                    }
+                    item.querySelector('.todo-item-title').replaceWith(window.taskDisplay(task, () => { saveTasks(); renderTasks(); }));
+                    if (status !== 'inbox') {
+                        const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×';
+                        remove.setAttribute('aria-label', 'Bỏ khỏi ma trận');
+                        remove.onclick = () => { task.status = 'inbox'; saveTasks(); renderTasks(); };
+                        item.appendChild(remove);
+                    }
                     list.appendChild(item);
                 });
             });
+            window.renderPlannerMatrix?.();
         };
 
-        dashboard.querySelector('[data-todo-form]').addEventListener('submit', (event) => {
-            event.preventDefault();
-            const input = dashboard.querySelector('[data-todo-input]');
-            const title = input.value.trim();
-            if (!title) return;
-            tasks.unshift({ id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, title, status: 'inbox' });
+        dashboard.querySelector('[data-task-trash]').onclick = () => window.showTaskTrash();
+        dashboard.querySelector('[data-add-inbox]').addEventListener('click', () => {
+            const task = { id: 'task-' + crypto.randomUUID(), title: 'Việc mới', status: 'inbox' };
+            tasks.unshift(task);
             saveTasks();
             renderTasks();
-            input.value = '';
+            const row = dashboard.querySelector('[data-task-list="inbox"] .todo-item');
+            const title = row.querySelector('.todo-item-title');
+            const input = document.createElement('input');
+            input.className = 'todo-inline-title';
+            input.value = task.title;
+            input.maxLength = 160;
+            input.setAttribute('aria-label', 'Tên công việc');
+            title.replaceWith(input);
+            row.draggable = false;
+            const finish = () => {
+                task.title = input.value.trim() || 'Việc mới';
+                saveTasks();
+                title.textContent = task.title;
+                input.replaceWith(title);
+                row.draggable = true;
+            };
+            input.addEventListener('blur', finish, { once: true });
+            input.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === 'Escape') {
+                    event.preventDefault();
+                    input.blur();
+                }
+            });
             input.focus();
+            input.select();
         });
 
         dashboard.addEventListener('click', (event) => {
@@ -597,16 +629,14 @@
                 renderTasks();
                 return;
             }
-            const button = event.target.closest('[data-delete-task]');
+            const button = event.target.closest('[data-edit-task]');
             if (!button) return;
-            const item = button.closest('.todo-item');
-            tasks = tasks.filter((task) => task.id !== item.dataset.taskId);
-            saveTasks();
-            renderTasks();
+            const task = tasks.find(entry => entry.id === button.closest('.todo-item').dataset.taskId);
+            if (task) window.editDashboardTask(task, () => { saveTasks(); renderTasks(); });
         });
 
         dashboard.addEventListener('dragstart', (event) => {
-            const item = event.target.closest('.todo-item');
+            const item = event.target.closest('.todo-item[data-task-id]');
             if (!item) return;
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/plain', item.dataset.taskId);
@@ -632,6 +662,8 @@
             const list = event.target.closest('[data-task-list]');
             if (!list) return;
             event.preventDefault();
+            const planId = event.dataTransfer.getData('application/x-hodi-matrix-plan');
+            if (planId) { window.movePlannerToMatrix?.(planId, list.dataset.taskList); return; }
             const task = tasks.find((entry) => entry.id === event.dataTransfer.getData('text/plain'));
             if (!task) return;
             task.status = list.dataset.taskList;
@@ -650,6 +682,7 @@
     };
 
     setupDashboard();
+    window.translateDashboard?.();
     if (cloudGrid) {
         cloudGrid.remove();
         dashboardGrid = null;

@@ -185,7 +185,7 @@
             const textarea = document.createElement('textarea');
             textarea.className = 'inline-edit';
             textarea.dataset.nodeId = String(nodeId);
-            textarea.setAttribute('aria-label', 'N?i dung node');
+            textarea.setAttribute('aria-label', currentLang === 'vi' ? 'Nội dung node' : 'Node text');
             textarea.value = node.text;
             const align = node.textAlign || 'center';
             textarea.style.cssText = 'position:fixed; z-index:1000; box-sizing:border-box; border:0; outline:none; border-radius:0; box-shadow:none; background:transparent; resize:none; overflow:auto; white-space:pre-wrap; line-height:1.3; transform-origin:top left;';
@@ -231,7 +231,9 @@
                 saveHistory();
                 render();
                 if (selection.nodeId === nodeId) showRightPanel(nodeId);
+                canvas.focus();
             }
+            textarea.commit = commit;
             textarea.addEventListener('keydown', e => {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault();
                     commit(); } else if (e.key === 'Escape') { done = true;
@@ -276,6 +278,7 @@
         }
 
         function closeInlineEdit() {
+            if (inlineEdit?.commit) inlineEdit.commit();
             if (inlineEdit) { inlineEdit.remove();
                 inlineEdit = null; }
             if (inlineEditToolbar) { inlineEditToolbar.remove();
@@ -761,14 +764,13 @@
         }
 
         function handleKeyDown(e) {
-            const tag = (document.activeElement && document.activeElement.tagName) || '';
-            if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+            if (e.target?.closest?.('input,textarea,select,[contenteditable="true"],.mm-overlay,.library-dialog-overlay')) return;
 
             if (e.key === 'Shift') selection.shiftDown = true;
 
             if (e.ctrlKey || e.metaKey) {
-                if (e.key === 'z') { e.preventDefault();
-                    undo(); } else if (e.key === 'y') { e.preventDefault();
+                if (e.key.toLowerCase() === 'z') { e.preventDefault();
+                    if (e.shiftKey) redo(); else undo(); } else if (e.key.toLowerCase() === 'y') { e.preventDefault();
                     redo(); } else if (e.key === 'g') { e.preventDefault();
                     groupSelected(); } else if (e.key === 'c') { e.preventDefault();
                     copySelected(); } else if (e.key === 'x') { e.preventDefault();
