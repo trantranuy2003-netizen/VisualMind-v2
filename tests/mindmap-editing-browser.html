@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><pre id="result">RUNNING</pre><iframe id="app" style="width:1200px;height:850px"></iframe>
+<script>
+(async () => {
+    const assert = (value, message) => { if (!value) throw Error(message); };
+    const frame = document.querySelector('iframe');
+    await new Promise(resolve => { frame.onload = resolve; frame.src = '../mindmap.html?new=1&test=1'; });
+    await new Promise(resolve => setTimeout(resolve, 400));
+    const w = frame.contentWindow, d = w.document, run = code => w.eval(code);
+    assert(!d.querySelector('[data-mm-en="Go to center"]'), 'Center command removed');
+    assert(d.querySelector('.create-node-btn').nextElementSibling.dataset.mmEn === 'Fit to screen', 'Fit next to add');
+    assert([...d.querySelectorAll('.mm-tools > button')].every(button => button.querySelector('svg') && button.getAttribute('aria-label')), 'Toolbar uses accessible icons');
+    d.querySelector('#sidebarCloseBtn').click();
+    d.querySelector('#sidebarIcons').dispatchEvent(new w.MouseEvent('mouseenter'));
+    assert(!d.querySelector('#sidebar').classList.contains('expanded'), 'Hover leaves sidebar closed');
+    run("mindmap.nodes={1:{id:1,text:'Hello world',x:-180,y:0,width:150,height:60,fontSize:14,color:'#A8D8EA',children:[],textStyles:[]},2:{id:2,text:'Second',x:20,y:0,width:150,height:60,fontSize:14,color:'#A8D8EA',children:[],textStyles:[]}}; mindmap.center=1; viewport={x:0,y:0,zoom:1}; render();");
+    run("handleMouseDown({clientX:canvas.getBoundingClientRect().left+canvas.width/2-200,clientY:canvas.getBoundingClientRect().top+canvas.height/2-20,shiftKey:true,button:0,preventDefault(){}}); selection.boxEnd={x:canvas.width/2+190,y:canvas.height/2+90}; handleMouseUp({});");
+    assert(run('selection.selectedIds.length') === 2, 'Shift drag selects both nodes');
+    run("updateNodeProperty(selection.nodeId,'fontSize',20); toggleNodeStyle(selection.nodeId,'bold');");
+    assert(run('Object.values(mindmap.nodes).every(n=>n.fontSize===20 && n.bold)'), 'Batch size and bold');
+    run("startInlineEdit(1)");
+    const editor = d.querySelector('.inline-edit');
+    assert(editor.isContentEditable, 'Rich text editor');
+    editor.setSelectionRange(0, 5);
+    editor.dispatchEvent(new w.KeyboardEvent('keydown', { key:'i', ctrlKey:true, bubbles:true, cancelable:true }));
+    assert(editor.querySelector('span').style.fontStyle === 'italic', 'Selected text formats before blur');
+    assert(editor.value === 'Hello world', 'Formatting preserves text');
+    editor.setRangeText('Hi', 0, 5);
+    assert(editor.value === 'Hi world', 'Text replacement preserves plain content');
+    editor.dispatchEvent(new w.KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+    assert(run('mindmap.nodes[1].text') === 'Hi world', 'Commit rich text');
+    run('startInlineEdit(1)');
+    assert(d.querySelector('.inline-edit span').style.fontStyle === 'italic', 'Reopen preserves formatting');
+    d.querySelector('.inline-edit').dispatchEvent(new w.KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    d.querySelector('#sidebarToggle').click();
+    await new Promise(resolve => setTimeout(resolve, 400));
+    assert(run('canvas.width === document.querySelector("#canvasArea").clientWidth'), 'Canvas follows sidebar size');
+    assert(w.testErrors.length === 0, w.testErrors.join('; '));
+    document.querySelector('#result').textContent = 'PASS: icons, sidebar lock, canvas resize, Shift selection, batch format, live rich text, shortcuts, save and reopen.';
+})().catch(error => document.querySelector('#result').textContent = 'FAIL: ' + error.stack);
+</script>

@@ -1,4 +1,14 @@
 #canvas { touch-action: none; }
+#canvasArea { min-width: 0; }
+#canvas { width: 100%; height: 100%; }
+.mm-tools > button svg, .controls button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.mm-tools > button, .controls > button { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; }
+.mm-tools input[hidden] { display: none; }
+.app-topbar svg { stroke: currentColor; }
+.inline-edit[contenteditable] { white-space: pre-wrap; overflow-wrap: break-word; caret-color: var(--ink); }
+.node-mini-properties-panel { gap: 3px !important; padding: 5px !important; border-radius: 8px !important; }
+.node-mini-properties-panel button { min-width: 28px; height: 28px; border-radius: 4px !important; font-family: Arial, sans-serif; }
+.node-mini-properties-panel svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; }
 #canvas:focus-visible { outline: 2px solid var(--home-orange, #ff7411); outline-offset: -2px; }
 .mm-tools { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px; background: var(--panel-bg); border: 1px solid var(--card-border); border-radius: 12px; z-index: 110; box-shadow: var(--shadow); }
 .mm-tools input { min-width: 120px; width: 180px; flex: 1; border: 1px solid var(--card-border); border-radius: 8px; background: var(--canvas-bg); color: var(--ink); padding: 8px; }

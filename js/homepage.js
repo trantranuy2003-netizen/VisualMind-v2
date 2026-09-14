@@ -219,6 +219,17 @@
         });
         document.querySelectorAll('[data-language-choice]').forEach((button) => {
             button.classList.toggle('active', button.dataset.languageChoice === currentLanguage);
+            button.setAttribute('aria-pressed', String(button.dataset.languageChoice === currentLanguage));
+            button.setAttribute('aria-label', button.dataset.languageChoice === 'vi' ? 'Tiếng Việt' : 'English');
+        });
+        document.querySelectorAll('.app-nav-link').forEach(link => {
+            link.title = link.textContent.trim();
+            link.setAttribute('aria-label', link.title);
+        });
+        document.querySelectorAll('[data-theme-choice]').forEach(button => {
+            button.setAttribute('aria-label', currentLanguage === 'en'
+                ? (button.dataset.themeChoice === 'dark' ? 'Dark theme' : 'Light theme')
+                : (button.dataset.themeChoice === 'dark' ? 'Giao diện tối' : 'Giao diện sáng'));
         });
         renderTree();
     };
@@ -231,6 +242,7 @@
         document.dispatchEvent(new CustomEvent('visualmind-preferences', { detail: { theme } }));
         document.querySelectorAll('[data-theme-choice]').forEach((button) => {
             button.classList.toggle('active', button.dataset.themeChoice === theme);
+            button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme));
         });
     };
 
@@ -565,7 +577,7 @@
                     item.draggable = true;
                     item.dataset.taskId = task.id;
                     item.classList.toggle('is-completed', Boolean(task.completed));
-                    item.innerHTML = '<span class="todo-grip" aria-hidden="true">⠿</span><label class="todo-check"><input type="checkbox" data-toggle-task><span aria-hidden="true"></span></label><span class="todo-item-title"></span><button type="button" data-edit-task aria-label="Sửa công việc">🖊</button>';
+                    item.innerHTML = '<span class="todo-grip" aria-hidden="true">⠿</span><label class="todo-check"><input type="checkbox" data-toggle-task><span aria-hidden="true"></span></label><span class="todo-item-title"></span><button type="button" data-edit-task aria-label="Sửa công việc">🖊</button><button type="button" data-trash-task aria-label="Chuyển vào thùng rác">🗑</button>';
                     item.querySelector('[data-toggle-task]').checked = Boolean(task.completed);
                     item.querySelector('[data-toggle-task]').setAttribute('aria-label', 'Hoàn thành: ' + task.title);
                     if (task.kind === 'goal') {
@@ -629,6 +641,8 @@
                 renderTasks();
                 return;
             }
+            const trash = event.target.closest('[data-trash-task]');
+            if (trash) { const task = tasks.find(entry => entry.id === trash.closest('.todo-item').dataset.taskId); if (task) { task.trashedAt = new Date().toISOString(); saveTasks(); renderTasks(); } return; }
             const button = event.target.closest('[data-edit-task]');
             if (!button) return;
             const task = tasks.find(entry => entry.id === button.closest('.todo-item').dataset.taskId);
@@ -679,6 +693,7 @@
         document.addEventListener('visualmind-dashboard-status', event => { dashboardStatus.textContent = event.detail.text; });
         document.addEventListener('visualmind-dashboard-restored', () => { tasks = readTasks(); renderTasks(); });
         if (window.setupWeeklyPlanner) window.setupWeeklyPlanner(dashboard);
+        window.setupRadar?.(dashboard);
     };
 
     setupDashboard();

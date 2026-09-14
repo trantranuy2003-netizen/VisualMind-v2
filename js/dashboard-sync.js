@@ -2,12 +2,13 @@
     const documentId = 'hodi-dashboard-v1';
     const tasksKey = 'visualmind-eisenhower-tasks';
     const plannerKey = 'visualmind-weekly-planner';
+    const radarKey = 'visualmind-radar';
     const ownerKey = 'visualmind-dashboard-owner';
-    const empty = () => ({ tasks: [], planner: { items: [], recurring: [] } });
+    const empty = () => ({ tasks: [], planner: { items: [], recurring: [] }, radar: { months: {} } });
     const read = (key, fallback) => {
         try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
     };
-    const snapshot = () => ({ tasks: read(tasksKey, []), planner: read(plannerKey, empty().planner) });
+    const snapshot = () => ({ tasks: read(tasksKey, []), planner: read(plannerKey, empty().planner), radar: read(radarKey, empty().radar) });
     const cacheKey = owner => `visualmind-dashboard-cache:${owner || 'guest'}`;
     let owner = localStorage.getItem(ownerKey) || null;
     let generation = 0, timer, pending = Promise.resolve(), ready = false;
@@ -18,6 +19,7 @@
     const apply = data => {
         localStorage.setItem(tasksKey, JSON.stringify(data.tasks || []));
         localStorage.setItem(plannerKey, JSON.stringify(data.planner || empty().planner));
+        localStorage.setItem(radarKey, JSON.stringify(data.radar || empty().radar));
         document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));
     };
     const cache = () => {
@@ -73,9 +75,9 @@
             let local = read(cacheKey(account), {});
             const remote = data?.[0];
             // A brand-new browser has an empty cache, not an intentional deletion.
-            const hasLocal = local.snapshot?.tasks?.length || local.snapshot?.planner?.items?.length || local.snapshot?.planner?.recurring?.length;
+            const hasLocal = local.snapshot?.tasks?.length || local.snapshot?.planner?.items?.length || local.snapshot?.planner?.recurring?.length || Object.keys(local.snapshot?.radar?.months || {}).length;
             if (remote && (!local.dirty || (!hasLocal && !local.edited))) {
-                local = { snapshot: { tasks: remote.data.tasks || [], planner: remote.data.planner || empty().planner }, dirty: false, revision: crypto.randomUUID() };
+                local = { snapshot: { tasks: remote.data.tasks || [], planner: remote.data.planner || empty().planner, radar: remote.data.radar || empty().radar }, dirty: false, revision: crypto.randomUUID() };
                 apply(local.snapshot);
             }
             if (remote) local.cloudId = remote.id;
@@ -100,7 +102,7 @@
     window.addEventListener('online', reconnect);
     window.addEventListener('storage', event => {
         if (event.storageArea !== localStorage) return;
-        if (event.key === tasksKey || event.key === plannerKey) document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));
+        if (event.key === tasksKey || event.key === plannerKey || event.key === radarKey) document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));
     });
     document.addEventListener('click', async event => {
         const link = event.target.closest('a[href]');

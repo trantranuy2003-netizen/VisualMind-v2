@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/flashcard.css">
+    <link rel="stylesheet" href="css/usability.css">
 </head>
 <body>
     <aside class="app-nav-sidebar" id="appNavSidebar" aria-label="Điều hướng ứng dụng">
@@ -56,7 +57,7 @@
                 </div>
                 <div class="sidebar-content">
                     <div class="tab-content" id="fctab-add" style="display:block;">
-                        <div class="section-title">📝 Paste câu hỏi &amp; đáp án</div>
+                        <label class="section-title" for="flashcardTextInput">📝 Dán câu hỏi &amp; đáp án</label>
                         <div style="font-size:12px; color:var(--ink-soft); margin-bottom:8px; line-height:1.5;">
                             Định dạng: mỗi thẻ gồm 1 dòng <b>Q:</b> và 1 dòng <b>A:</b>, các thẻ cách nhau bằng dòng trống.
                         </div>
@@ -66,7 +67,7 @@ A: Đáp án 1
 Q: Câu hỏi 2?
 A: Đáp án 2"></textarea>
                         <button class="action-btn primary" onclick="generateFlashcardsFromText()">✨ Tạo flashcard</button>
-                        <div id="fcParsePreview" style="font-size:12.5px; margin-top:10px; line-height:1.5;"></div>
+                        <div id="fcParsePreview" role="status" style="font-size:12.5px; margin-top:10px; line-height:1.5;"></div>
                     </div>
                     <div class="tab-content" id="fctab-list" style="display:none;">
                         <div class="section-title">📋 Tất cả flashcard (<span id="fcCount">0</span>)</div>
@@ -83,14 +84,14 @@ A: Đáp án 2"></textarea>
                 <button class="control-btn" onclick="fcShowStats()" title="Thống kê">📊</button>
             </div>
             <div class="fc-card-area" id="fcCardArea">
-                <div class="fc-empty" id="fcEmptyState">Chưa có flashcard nào.<br>Paste text ở sidebar bên trái để tạo bộ câu hỏi đầu tiên.</div>
+                <div class="fc-empty" id="fcEmptyState"><strong>Bắt đầu bộ thẻ đầu tiên</strong><p>Dán câu hỏi và đáp án vào ô nhập, rồi chọn “Tạo flashcard” để bắt đầu ôn tập.</p><button type="button" onclick="document.querySelector('[data-fctab=add]').click(); document.getElementById('flashcardTextInput').focus()">Nhập câu hỏi</button></div>
                 <div class="fc-card" id="fcCard" style="display:none;">
                     <div class="fc-card-label" id="fcCardLabel">CÂU HỎI</div>
                     <div class="fc-card-text" id="fcCardText"></div>
                     <div class="fc-card-hint" id="fcCardHint">👁️ Nhấn để xem đáp án</div>
                     <div class="fc-linked-badge" id="fcLinkedBadge" style="display:none;">🔗 Đã link với node</div>
                     <div class="fc-answer-input-area" id="fcAnswerInputArea">
-                        <textarea id="fcUserAnswer" placeholder="Nhập câu trả lời của bạn..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fcSubmitAnswer()}"></textarea>
+                        <textarea id="fcUserAnswer" aria-label="Câu trả lời của bạn" placeholder="Nhập câu trả lời của bạn..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fcSubmitAnswer()}"></textarea>
                         <div style="display:flex; gap:8px; justify-content:flex-end;">
                             <button class="fc-submit-btn" onclick="fcSubmitAnswer()">✅ Nộp câu trả lời</button>
                             <button class="fc-submit-btn" style="background:var(--panel-bg);color:var(--ink);border:1px solid var(--card-border);" onclick="fcSkipAnswer()">⏭️ Bỏ qua</button>

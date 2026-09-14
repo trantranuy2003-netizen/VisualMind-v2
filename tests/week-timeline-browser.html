@@ -19,7 +19,8 @@ try {
         { id: 'overlap', title: 'Meeting', fromTime: '09:30', endToTime: '10:00' },
         { id: 'all-day', title: 'Read a book' }
     ].map(item => ({ ...item, dates: [date], completedDates: [] }));
-    localStorage.setItem('visualmind-weekly-planner', JSON.stringify({ items, recurring: [] }));
+    localStorage.setItem('visualmind-calendar-visibility', '{}');
+    localStorage.setItem('visualmind-weekly-planner', JSON.stringify({ items, recurring: [{ id: 'repeat', title: 'Daily routine', repeat: 'daily', start: date }] }));
     localStorage.setItem('visualmind-week-hour-height', '64');
     window.setupWeeklyPlanner(document.querySelector('#dashboard'));
     document.querySelector('[data-calendar-view="week"]').click();
@@ -36,6 +37,23 @@ try {
     assert(document.querySelector('[data-zoom-out]').disabled, 'Zoom has a minimum');
     event().querySelector('input').click();
     assert(JSON.parse(localStorage.getItem('visualmind-weekly-planner')).items[0].completedDates.includes(date), 'Completion still saves');
+    const toggle = name => { const input = document.querySelector('.calendar-visibility [name="' + name + '"]'); input.checked = !input.checked; input.dispatchEvent(new Event('change')); };
+    toggle('hideDone');
+    assert(!event(), 'Hide done removes completed occurrence');
+    toggle('hideDone');
+    assert(event(), 'Show done restores occurrence');
+    toggle('hideRecurring');
+    assert(!grid.querySelector('[data-calendar-item="repeat"]'), 'Hide recurring removes series from calendar');
+    toggle('hideRecurring');
+    assert(grid.querySelector('[data-calendar-item="repeat"]'), 'Showing recurring restores series');
+    toggle('sleep');
+    assert(grid.querySelectorAll('.calendar-sleep').length === 14, 'Overnight sleep is split across each day');
+    event().querySelector('.calendar-move-handle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    assert(JSON.parse(localStorage.getItem('visualmind-weekly-planner')).items[0].fromTime === '09:15', 'Move handle adjusts by 15 minutes');
+    document.querySelector('[aria-label="Mở rộng lịch dạng bảng"]').click();
+    assert(document.querySelector('.calendar-board [data-calendar]') === grid, 'Expanded board uses live calendar');
+    document.querySelector('[aria-label="Đóng lịch mở rộng"]').click();
+    assert(document.querySelector('#dashboard [data-calendar]') === grid, 'Closing restores calendar');
     document.querySelector('[data-calendar-view="month"]').click();
     assert(!grid.querySelector('.week-time-axis') && !document.querySelector('[data-zoom-in]'), 'Month view keeps its original layout');
     document.querySelector('#result').textContent = 'PASS: hour ticks, timed placement, overlap, all-day tasks, zoom, persistence, completion, month view.';

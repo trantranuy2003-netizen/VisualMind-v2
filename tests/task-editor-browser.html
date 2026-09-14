@@ -22,6 +22,7 @@ try {
         assert(transfer.getData('application/x-hodi-matrix-plan') === id, 'Drag must carry original task ID');
         window.movePlannerToMatrix(id, 'do');
     }
+    assert(!document.querySelector('[data-scheduled] [data-plan-row=scheduled]'), 'Moved task leaves Schedule');
     assert(document.querySelectorAll('.matrix-dropzone [data-plan-row]').length === 2, 'Both task types must appear in matrix');
     document.querySelector('.matrix-dropzone [data-plan-row="recurring"] [aria-label="Bỏ khỏi ma trận"]').click();
     assert(!document.querySelector('.matrix-dropzone [data-plan-row="recurring"]') && document.querySelector('[data-recurring] [data-plan-row="recurring"]'), 'Matrix remove must preserve source task');
@@ -83,13 +84,13 @@ try {
     form.requestSubmit();
     const saved = JSON.parse(localStorage.getItem('visualmind-weekly-planner')).items[0];
     assert(saved.title === 'Edited <safe>' && saved.flag === 'red' && saved.category === 'Custom category' && saved.endToTime === '12:00', 'All editor fields must persist');
-    assert(document.querySelector('[data-scheduled] .todo-item-title').textContent === saved.title, 'Original row must update safely');
-    const heading = document.querySelector('[data-scheduled] .task-title-row');
-    assert(saved.kind === 'goal' && document.querySelector('[data-scheduled] [data-plan-row="scheduled"] .goal-target-icon')?.querySelectorAll('circle').length === 3, 'Goal kind must save and display');
+    assert(document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] .todo-item-title').textContent === saved.title, 'Original row must update safely');
+    const heading = document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] .task-title-row');
+    assert(saved.kind === 'goal' && document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] .goal-target-icon')?.querySelectorAll('circle').length === 3, 'Goal kind must save and display');
     assert(heading.firstElementChild.textContent === '🚩' && heading.lastElementChild.className === 'task-meta-category', 'Flag must precede title and category must be on its right');
-    assert(document.querySelector('[data-scheduled] .task-content').lastElementChild.className === 'task-meta', 'Schedule must appear below title');
+    assert(document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] .task-content').lastElementChild.className === 'task-meta', 'Schedule must appear below title');
     document.querySelector('.matrix-dropzone .goal-check span').click();
-    assert(document.querySelector('[data-scheduled] input').checked, 'Completion must update original task');
+    assert(document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] input').checked, 'Completion must update original task');
     document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] [aria-label="Sửa công việc"]').click();
     form = document.querySelector('.task-editor');
     form.elements.endToTime.value = '08:00';
@@ -106,9 +107,9 @@ try {
     window.showTaskTrash();
     assert(document.querySelector('[data-trash-list]').textContent.includes('Edited <safe>'), 'Trashed task must remain recoverable');
     document.querySelector('[data-trash-list] button').click();
-    assert(document.querySelector('[data-scheduled] [data-plan-row="scheduled"]'), 'Restore must recover task');
+    assert(document.querySelector('.matrix-dropzone [data-plan-row="scheduled"]'), 'Restore must recover task');
     assert(readPlanner().items[0].categoryColor === '#b4e7c8', 'Category color must persist');
-    document.querySelector('[data-scheduled] [data-plan-row="scheduled"] [aria-label="Gỡ danh mục"]').click();
+    document.querySelector('.matrix-dropzone [data-plan-row="scheduled"] [aria-label="Gỡ danh mục"]').click();
     assert(readPlanner().items[0].category === '', 'Category chip x must remove category');
     document.querySelector('[data-calendar-view="week"]').click();
     const recurringEvent = document.querySelector(`[data-date="${date}"] [data-calendar-item="recurring"]`);

@@ -148,7 +148,9 @@
         searchInput = document.createElement('input'); searchInput.type = 'search'; searchInput.placeholder = tr('Tìm trong sơ đồ…', 'Search mindmap…'); searchInput.setAttribute('aria-label', searchInput.placeholder); searchInput.oninput = search;
         results = document.createElement('div'); results.className = 'mm-search-results'; results.hidden = true;
         searchInput.onkeydown = event => { if (event.key === 'Escape') { searchInput.value = ''; search(); canvas.focus(); } if (event.key === 'Enter') { results.querySelector('button')?.click(); } };
-        tools.append(searchInput, button('Vừa màn hình', 'Fit to screen', fit), button('Về trung tâm', 'Go to center', () => focusNode(mindmap.center)), button('Phím tắt', 'Shortcuts', () => {
+        const fitButton = button('Vừa màn hình', 'Fit to screen', fit);
+        document.querySelector('.create-node-btn').after(fitButton);
+        tools.append(searchInput, button('Phím tắt', 'Shortcuts', () => {
             const { panel } = dialog('Phím tắt', 'Shortcuts'); const p = document.createElement('p'); p.textContent = tr('Chọn vùng sơ đồ rồi dùng: Tab — nhánh con; Enter — nhánh cùng cấp; F2 — sửa; ← — nhánh cha; → — nhánh con; ↑↓ — nhánh cùng cấp; F — vừa màn hình; 0 — zoom 100%; Ctrl/Cmd+F — tìm kiếm; Ctrl/Cmd+Z — hoàn tác; Ctrl/Cmd+Shift+Z — làm lại. Cảm ứng: kéo nền để di chuyển, kéo node để đổi vị trí, chụm hai ngón để zoom, chạm đúp để sửa.', 'Focus the canvas: Tab — child; Enter — sibling; F2 — edit; arrows — navigate; F — fit; 0 — 100%; Ctrl/Cmd+F — search; Ctrl/Cmd+Z — undo; Ctrl/Cmd+Shift+Z — redo. Touch: drag background to pan, drag nodes to move, pinch to zoom, double-tap to edit.'); panel.append(p);
         }));
         tools.append(results); document.getElementById('canvasArea').append(tools);

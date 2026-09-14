@@ -1,0 +1,55 @@
+<!doctype html><meta charset="utf-8"><pre id="result">RUNNING</pre><iframe style="width:1200px;height:900px"></iframe>
+<script>
+(async () => {
+    const assert = (value, message) => { if (!value) throw Error(message); };
+    localStorage.setItem('visualmind-radar', JSON.stringify({ months: {}, categories: ['Công việc', 'Học tập', 'Sức khỏe'] }));
+    localStorage.setItem('visualmind-eisenhower-tasks', '[]');
+    localStorage.setItem('visualmind-weekly-planner', '{"items":[],"recurring":[]}');
+    const frame = document.querySelector('iframe'); await new Promise(resolve => { frame.onload = resolve; frame.src = '../index.html?test=1'; });
+    const w = frame.contentWindow, d = w.document;
+    const click = text => { const node = [...d.querySelectorAll('button')].find(node => node.textContent === text); assert(node, 'Missing button: ' + text); node.click(); };
+    const read = () => JSON.parse(localStorage.getItem('visualmind-radar'));
+    const month = d.querySelector('[aria-label="Tháng kế hoạch"]').value;
+    assert(d.querySelector('.radar-chart'), 'Dashboard mounts radar');
+    click('＋ Lập kế hoạch');
+    let form = d.querySelector('.radar-form');
+    form.querySelector('select').value = 'Sức khỏe';
+    form.querySelector('input[type="text"]').value = 'Tập luyện';
+    form.querySelector('input[type="number"]').value = '16';
+    form.querySelectorAll('select')[1].value = 'manual';
+    form.querySelectorAll('input[type="number"]')[1].value = '8';
+    form.requestSubmit();
+    assert(read().months[month].goals[0].target === 16, 'Monthly target saves');
+    assert(d.querySelector('.radar-summary').textContent.includes('50%'), 'Half target produces 50%');
+    const openHealth = () => [...d.querySelectorAll('.radar-summary button')].find(node => node.textContent.includes('Sức khỏe')).click();
+    openHealth();
+    d.querySelector('[aria-label="Sửa mục tiêu"]').click();
+    form = d.querySelector('.radar-form'); form.querySelectorAll('select')[1].value = 'tasks'; form.requestSubmit();
+    click('＋ Task'); form = d.querySelector('.radar-form');
+    form.querySelector('input[type="text"]').value = 'Buổi tập 1'; form.requestSubmit();
+    const task = JSON.parse(localStorage.getItem('visualmind-weekly-planner')).items[0];
+    assert(task.category === 'Sức khỏe', 'Task inherits goal category');
+    d.querySelector('.radar-goal .radar-check input').click();
+    assert(d.querySelector('.radar-summary').textContent.includes('6%'), 'Task completion updates radar immediately');
+    d.querySelector('.radar-dialog-heading button').click();
+    const select = d.querySelector('[aria-label="Chế độ radar"]'); select.value = 'rating'; select.dispatchEvent(new w.Event('change'));
+    click('Đánh giá tháng này'); form = d.querySelector('.radar-form'); form.querySelectorAll('input')[2].value = '7'; form.requestSubmit();
+    assert(read().months[month].ratings['Sức khỏe'] === 7, 'Self rating stored independently');
+    assert(d.querySelector('.radar-summary').textContent.includes('7.0/10'), 'Rating displayed');
+    d.querySelector('[aria-label="Mở rộng radar"]').click(); assert(d.querySelector('.radar-expanded svg'), 'Expanded chart'); d.querySelector('.radar-dialog-heading button').click();
+    click('Tổng kết tháng'); d.querySelector('.radar-dialog .radar-check input').click(); click('Chốt tháng và chuyển phần đã chọn');
+    const next = w.RadarModel.shiftMonth(month, 1);
+    assert(read().months[month].closed['Sức khỏe'] === 6.25, 'Month snapshot frozen');
+    assert(read().months[next].goals[0].target === 15 && !read().months[next].goals[0].links.length, 'Rollover only carries remaining target');
+    assert(!d.querySelector('.radar-panel').textContent.includes('Đánh giá tháng này'), 'Closed month cannot be edited');
+    d.querySelector('[aria-label="Chọn và sắp xếp danh mục"]').click();
+    const categoryChecks = d.querySelectorAll('.radar-settings-row input'); categoryChecks[0].checked = false; categoryChecks[0].dispatchEvent(new w.Event('change'));
+    d.querySelector('.radar-form').requestSubmit(); assert(d.querySelector('.task-editor-error').textContent, 'At least three axes required');
+    categoryChecks[0].checked = true; categoryChecks[0].dispatchEvent(new w.Event('change')); d.querySelector('.radar-form').requestSubmit();
+    assert(read().categories.length === 3, 'Category settings persist');
+    const currentSelect = d.querySelector('[aria-label="Chế độ radar"]'); currentSelect.value = 'progress'; currentSelect.dispatchEvent(new w.Event('change'));
+    d.querySelector('.radar-panel').scrollIntoView();
+    assert(w.testErrors.length === 0, w.testErrors.join('; '));
+    document.querySelector('#result').textContent = 'PASS: monthly goals, manual progress, linked task creation/completion, ratings, expanded radar, frozen results and rollover.';
+})().catch(error => document.querySelector('#result').textContent = 'FAIL: ' + error.stack);
+</script>

@@ -32,14 +32,18 @@ function browser() {
     const tasks = [{ id: 'task-1', title: 'Priority task', status: 'do', completed: true }];
     const planner = { items: [{ id: 'goal-1', kind: 'goal', dates: ['2026-09-11'] }, { id: 'child', parentId: 'goal-1', kind: 'task' }], recurring: [{ id: 'repeat', repeat: 'weekly', completedDates: ['2026-09-11'] }] };
     regular.set('visualmind-eisenhower-tasks', tasks); regular.set('visualmind-weekly-planner', planner);
+    const radar = { months: { '2026-10': { goals: [{ id: 'health', target: 16, actual: 8 }] } } };
+    regular.set('visualmind-radar', radar);
     await regular.connect('account-a');
     assert.deepEqual(remote.get('account-a').tasks, tasks);
     assert.deepEqual(remote.get('account-a').planner, planner);
     const incognito = browser(); await incognito.connect('account-a');
     assert.deepEqual(incognito.get('visualmind-eisenhower-tasks'), tasks);
     assert.deepEqual(incognito.get('visualmind-weekly-planner'), planner);
+    assert.deepEqual(incognito.get('visualmind-radar'), radar, 'Monthly radar restores on a new browser');
     await incognito.connect('account-b');
     assert.deepEqual(incognito.get('visualmind-eisenhower-tasks'), []);
+    assert.deepEqual(incognito.get('visualmind-radar'), { months: {} }, 'Radar remains isolated between accounts');
     assert.deepEqual(remote.get('account-a').tasks, tasks, 'Switching account must not overwrite previous data');
     await incognito.connect('account-a');
     assert.deepEqual(incognito.get('visualmind-eisenhower-tasks'), tasks);
