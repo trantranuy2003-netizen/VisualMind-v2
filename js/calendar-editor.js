@@ -1,5 +1,5 @@
 (() => {
-    const t = (vi, en) => localStorage.getItem('visualmind-language') === 'en' ? en : vi;
+    const t = (vi, en) => window.I18n.pair(vi, en);
     window.setupCalendarEditor = (getState, save) => {
         const M = window.CalendarModel;
         const newId = () => 'plan-' + crypto.randomUUID();

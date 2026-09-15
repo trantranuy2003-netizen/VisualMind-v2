@@ -1,230 +1,12 @@
         // ============ TRANSLATIONS ============
-        const LANG = {
-            vi: {
-                'app-title': '🧠 Mindmap Builder',
-                'tab-text': '📝 Text to Mindmap',
-                'tab-import': '📂 Import',
-                'tab-export': '💾 Export',
-                'tab-language': '🌐 Language',
-                'tab-display': '🎨 Display',
-                'btn-update': '🔄 Update',
-                'btn-import-json': '📂 Import JSON',
-                'btn-save-json': '💾 Save as JSON',
-                'btn-save-image': '🖼️ Save as Image',
-                'btn-save-pdf': '📄 Save as PDF',
-                'rp-title-props': '🎨 Node Properties',
-                'rp-title-link': '🔗 Link Properties',
-                'rp-title-connector': '🔗 Connector Properties',
-                'node-props-text': 'Text',
-                'node-props-icon': 'Icon',
-                'node-props-fontsize': 'Font size',
-                'node-props-fill': 'Fill color',
-                'node-props-textcolor': 'Text color',
-                'node-props-custom': 'Custom color',
-                'node-props-black': '⬤ Black',
-                'node-props-white': '⬤ White',
-                'node-props-add-child': '➕ Add child',
-                'node-props-delete': '🗑️ Delete',
-                'node-props-collapse': '🔼 Collapse',
-                'node-props-expand': '🔽 Expand',
-                'node-props-highlight': 'Highlight color',
-                'node-props-bold': 'B',
-                'node-props-italic': 'I',
-                'node-props-underline': 'U',
-                'context-add-child': '➕ Add child',
-                'context-add-free': '📌 Insert free node',
-                'context-insert-table': '📊 Insert table',
-                'context-show-level': '📊 Show level',
-                'context-copy': '📋 Copy',
-                'context-cut': '✂️ Cut',
-                'context-paste': '📋 Paste',
-                'context-duplicate': '📋 Duplicate',
-                'context-delete': '🗑️ Delete',
-                'context-group': '📦 Group',
-                'context-ungroup': '📦✕ Ungroup',
-                'context-collapse': '🔼 Collapse',
-                'context-expand': '🔽 Expand',
-                'context-create-link': '🔗 Create link',
-                'link-color': 'Link color',
-                'link-width': 'Width',
-                'link-opacity': 'Opacity',
-                'link-dashed': 'Dashed',
-                'link-solid': 'Solid',
-                'link-delete': '🗑️ Delete link',
-                'connector-color': 'Connector color',
-                'connector-width': 'Width',
-                'connector-opacity': 'Opacity',
-                'connector-reset': '🔄 Reset',
-                'connector-cut': '✂️ Cut connector (child → free)',
-                'connector-delete': '🗑️ Delete connector',
-                'free-node': 'Free node',
-                'selection-count': 'Selected {count} node(s)',
-                'snipping-hint': 'Drag to select area. ESC to cancel.',
-                'save-modal-title': '💾 Save mindmap',
-                'save-modal-desc': 'Enter filename:',
-                'save-modal-placeholder': 'Filename (no .json needed)',
-                'save-modal-cancel': 'Cancel',
-                'save-modal-confirm': 'Save',
-                'hint-bold': 'Select text then click B/I/U or choose color.',
-                'table-rows': 'Rows',
-                'table-cols': 'Columns',
-                'table-create': '📊 Create table',
-                'table-edit-hint': 'Double-click a cell to edit',
-                'theme-light': '☀️ Light',
-                'theme-dark': '🌙 Dark',
-                'collapse-all': '📂 Collapse All',
-                'expand-all': '📂 Expand All',
-                'shortcut-help': '⌨️ Phím tắt',
-                'shortcut-title': 'Phím tắt Mindmap',
-                'sc-nav': 'Điều hướng',
-                'sc-arrows': '←→↑↓ Di chuyển node',
-                'sc-tab': 'Tab Thêm node con',
-                'sc-enter': 'Enter Sửa node',
-                'sc-f': 'F Fit toàn màn hình',
-                'sc-0': '0 Reset zoom 100%',
-                'sc-plus': '+ Zoom in',
-                'sc-minus': '− Zoom out',
-                'sc-question': '? Bảng phím tắt',
-                'sc-select': 'Chọn',
-                'sc-ctrl-a': 'Ctrl+A Chọn tất cả',
-                'sc-shift-click': 'Shift+Click Chọn nhiều',
-                'sc-shift-drag': 'Shift+Kéo Chọn vùng',
-                'sc-edit': 'Chỉnh sửa',
-                'sc-ctrl-z': 'Ctrl+Z Undo',
-                'sc-ctrl-y': 'Ctrl+Y Redo',
-                'sc-ctrl-c': 'Ctrl+C Copy',
-                'sc-ctrl-x': 'Ctrl+X Cut',
-                'sc-ctrl-v': 'Ctrl+V Paste',
-                'sc-ctrl-d': 'Ctrl+D Duplicate',
-                'sc-del': 'Delete Xoá node',
-                'sc-escape': 'Esc Bỏ chọn',
-                'sc-align': 'Canh chỉnh',
-                'sc-align-l': 'Ctrl+← Canh trái',
-                'sc-align-r': 'Ctrl+→ Canh phải',
-                'sc-align-t': 'Ctrl+↑ Canh trên',
-                'sc-align-b': 'Ctrl+↓ Canh dưới',
-                'sc-align-h': 'Ctrl+H Canh giữa H',
-                'sc-align-v': 'Ctrl+J Canh giữa V',
-                'sc-file': 'Tệp',
-                'sc-ctrl-s': 'Ctrl+S Lưu file',
-                'sc-ctrl-o': 'Ctrl+O Mở file',
-            },
-            en: {
-                'app-title': '🧠 Mindmap Builder',
-                'tab-text': '📝 Text to Mindmap',
-                'tab-import': '📂 Import',
-                'tab-export': '💾 Export',
-                'tab-language': '🌐 Language',
-                'tab-display': '🎨 Display',
-                'btn-update': '🔄 Update',
-                'btn-import-json': '📂 Import JSON',
-                'btn-save-json': '💾 Save as JSON',
-                'btn-save-image': '🖼️ Save as Image',
-                'btn-save-pdf': '📄 Save as PDF',
-                'rp-title-props': '🎨 Node Properties',
-                'rp-title-link': '🔗 Link Properties',
-                'rp-title-connector': '🔗 Connector Properties',
-                'node-props-text': 'Text',
-                'node-props-icon': 'Icon',
-                'node-props-fontsize': 'Font size',
-                'node-props-fill': 'Fill color',
-                'node-props-textcolor': 'Text color',
-                'node-props-custom': 'Custom color',
-                'node-props-black': '⬤ Black',
-                'node-props-white': '⬤ White',
-                'node-props-add-child': '➕ Add child',
-                'node-props-delete': '🗑️ Delete',
-                'node-props-collapse': '🔼 Collapse',
-                'node-props-expand': '🔽 Expand',
-                'node-props-highlight': 'Highlight color',
-                'node-props-bold': 'B',
-                'node-props-italic': 'I',
-                'node-props-underline': 'U',
-                'context-add-child': '➕ Add child',
-                'context-add-free': '📌 Insert free node',
-                'context-insert-table': '📊 Insert table',
-                'context-show-level': '📊 Show level',
-                'context-copy': '📋 Copy',
-                'context-cut': '✂️ Cut',
-                'context-paste': '📋 Paste',
-                'context-duplicate': '📋 Duplicate',
-                'context-delete': '🗑️ Delete',
-                'context-group': '📦 Group',
-                'context-ungroup': '📦✕ Ungroup',
-                'context-collapse': '🔼 Collapse',
-                'context-expand': '🔽 Expand',
-                'context-create-link': '🔗 Create link',
-                'link-color': 'Link color',
-                'link-width': 'Width',
-                'link-opacity': 'Opacity',
-                'link-dashed': 'Dashed',
-                'link-solid': 'Solid',
-                'link-delete': '🗑️ Delete link',
-                'connector-color': 'Connector color',
-                'connector-width': 'Width',
-                'connector-opacity': 'Opacity',
-                'connector-reset': '🔄 Reset',
-                'connector-cut': '✂️ Cut connector (child → free)',
-                'connector-delete': '🗑️ Delete connector',
-                'free-node': 'Free node',
-                'selection-count': 'Selected {count} node(s)',
-                'snipping-hint': 'Drag to select area. ESC to cancel.',
-                'save-modal-title': '💾 Save mindmap',
-                'save-modal-desc': 'Enter filename:',
-                'save-modal-placeholder': 'Filename (no .json needed)',
-                'save-modal-cancel': 'Cancel',
-                'save-modal-confirm': 'Save',
-                'hint-bold': 'Select text then click B/I/U or choose color.',
-                'table-rows': 'Rows',
-                'table-cols': 'Columns',
-                'table-create': '📊 Create table',
-                'table-edit-hint': 'Double-click a cell to edit',
-                'theme-light': '☀️ Light',
-                'theme-dark': '🌙 Dark',
-                'collapse-all': '📂 Collapse All',
-                'expand-all': '📂 Expand All',
-                'shortcut-help': '⌨️ Shortcuts',
-                'shortcut-title': 'Mindmap Shortcuts',
-                'sc-nav': 'Navigation',
-                'sc-arrows': '←→↑↓ Move node',
-                'sc-tab': 'Tab Add child node',
-                'sc-enter': 'Enter Edit node',
-                'sc-f': 'F Fit to screen',
-                'sc-0': '0 Reset zoom 100%',
-                'sc-plus': '+ Zoom in',
-                'sc-minus': '− Zoom out',
-                'sc-question': '? Shortcut help',
-                'sc-select': 'Selection',
-                'sc-ctrl-a': 'Ctrl+A Select all',
-                'sc-shift-click': 'Shift+Click Multi-select',
-                'sc-shift-drag': 'Shift+Drag Box select',
-                'sc-edit': 'Edit',
-                'sc-ctrl-z': 'Ctrl+Z Undo',
-                'sc-ctrl-y': 'Ctrl+Y Redo',
-                'sc-ctrl-c': 'Ctrl+C Copy',
-                'sc-ctrl-x': 'Ctrl+X Cut',
-                'sc-ctrl-v': 'Ctrl+V Paste',
-                'sc-ctrl-d': 'Ctrl+D Duplicate',
-                'sc-del': 'Delete Delete node',
-                'sc-escape': 'Esc Deselect',
-                'sc-align': 'Alignment',
-                'sc-align-l': 'Ctrl+← Align left',
-                'sc-align-r': 'Ctrl+→ Align right',
-                'sc-align-t': 'Ctrl+↑ Align top',
-                'sc-align-b': 'Ctrl+↓ Align bottom',
-                'sc-align-h': 'Ctrl+H Center H',
-                'sc-align-v': 'Ctrl+J Center V',
-                'sc-file': 'File',
-                'sc-ctrl-s': 'Ctrl+S Save file',
-                'sc-ctrl-o': 'Ctrl+O Open file',
-            }
-        };
+        const LANG = { vi: {}, en: {} };
+        for (const [key, pair] of Object.entries(window.I18n.dictionary)) if (key.startsWith('app.')) { LANG.vi[key.slice(4)] = pair[0]; LANG.en[key.slice(4)] = pair[1]; }
 
         let currentLang = 'vi';
         let currentTheme = 'light';
         let allCollapsed = false;
 
-        function t(key) { return LANG[currentLang][key] || key; }
+        function t(key) { return window.I18n.t('app.' + key); }
 
         function setLanguage(lang) {
             currentLang = lang;
@@ -546,7 +328,7 @@
             try {
                 await navigator.clipboard.writeText(prompt);
                 showToast(currentLang === 'en' ? 'Prompt copied. Ask an AI, then paste its outline below.' : 'Đã sao chép prompt. Dán vào AI, rồi dán dàn ý trả về ở ô bên dưới.', 'success');
-            } catch { window.prompt('Sao chép prompt này:', prompt); }
+            } catch { window.prompt(window.I18n.text('Sao chép prompt này:'), prompt); }
         };
 
         function resizeCanvas() {
@@ -1787,7 +1569,7 @@
             } else if (snippingMode === 'pdf') {
                 const pdfWindow = window.open('', '_blank');
                 if (!pdfWindow) {
-                    alert('Please allow popups for PDF export');
+                    alert(window.I18n.text('Please allow popups for PDF export'));
                     return;
                 }
                 const dataUrl = tempCanvas.toDataURL('image/png', 1.0);
@@ -2236,7 +2018,7 @@
         }
 
         function cutConnector(parentId, childId) {
-            if (!confirm('Cut connector? The child node will become a free node.')) return;
+            if (!confirm(window.I18n.text('Cut connector? The child node will become a free node.'))) return;
             const parent = mindmap.nodes[parentId];
             const child = mindmap.nodes[childId];
             if (!parent || !child) return;
@@ -2449,7 +2231,7 @@
 
         function deleteNode(nodeId) {
             if (nodeId === mindmap.center) {
-                alert('Cannot delete center node');
+                alert(window.I18n.text('Cannot delete center node'));
                 return;
             }
             const node = mindmap.nodes[nodeId];
@@ -2617,14 +2399,14 @@
         function groupSelected() {
             const ids = selection.selectedIds;
             if (ids.length < 2) {
-                alert('Please select at least 2 nodes to group');
+                alert(window.I18n.text('Please select at least 2 nodes to group'));
                 return;
             }
             const existingGroups = mindmap.groups || [];
             for (const group of existingGroups) {
                 for (const id of ids) {
                     if (group.nodes.includes(id)) {
-                        alert('Some nodes are already in a group.');
+                        alert(window.I18n.text('Some nodes are already in a group.'));
                         return;
                     }
                 }
@@ -2697,7 +2479,7 @@
                 if (node && node.isGroup) { groupId = id; break; }
             }
             if (!groupId) {
-                alert('Please select a group node to ungroup');
+                alert(window.I18n.text('Please select a group node to ungroup'));
                 return;
             }
             const groupNode = mindmap.nodes[groupId];
@@ -2846,7 +2628,7 @@
                             }
                             showToast('✅ Import thành công!', 'success');
                         } catch (err) {
-                            alert('Invalid JSON file');
+                            alert(window.I18n.text('Invalid JSON file'));
                         }
                     };
                     reader.readAsText(file);

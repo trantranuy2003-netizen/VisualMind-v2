@@ -6,58 +6,7 @@
     const collapsedFoldersKey = 'visualmind-collapsed-folders';
     const treeElement = document.getElementById('libraryTree');
 
-    const translations = {
-        vi: {
-            home: 'Trang chủ',
-            mindmap: 'Mindmap',
-            flashcard: 'Flashcard',
-            library: 'Thư viện',
-            settings: 'Cài đặt',
-            theme: 'Giao diện',
-            language: 'Ngôn ngữ',
-            addFile: 'Thêm tệp',
-            addProject: 'Thêm Project',
-            addSubproject: 'Thêm Sub-project',
-            addMindmap: 'Thêm Mindmap',
-            addFlashcard: 'Thêm Flashcard',
-            rename: 'Đổi tên',
-            remove: 'Xóa tệp',
-            moveUp: 'Di chuyển lên',
-            moveDown: 'Di chuyển xuống',
-            makeChild: 'Đưa vào tệp cha',
-            moveParent: 'Đưa lên cấp cha',
-            empty: 'Chưa có tệp nào',
-            fileName: 'Tên tệp',
-            fileType: 'Loại tệp (mindmap/flashcard)',
-            confirmDelete: 'Xóa tệp này và toàn bộ tệp con?',
-            parentName: 'Tên tệp cha mới'
-        },
-        en: {
-            home: 'Home',
-            mindmap: 'Mindmap',
-            flashcard: 'Flashcard',
-            library: 'Library',
-            settings: 'Settings',
-            theme: 'Theme',
-            language: 'Language',
-            addFile: 'Add file',
-            addProject: 'Add Project',
-            addSubproject: 'Add Sub-project',
-            addMindmap: 'Add Mindmap',
-            addFlashcard: 'Add Flashcard',
-            rename: 'Rename',
-            remove: 'Delete file',
-            moveUp: 'Move up',
-            moveDown: 'Move down',
-            makeChild: 'Move into parent',
-            moveParent: 'Move to parent level',
-            empty: 'No files yet',
-            fileName: 'File name',
-            fileType: 'File type (mindmap/flashcard)',
-            confirmDelete: 'Delete this file and all children?',
-            parentName: 'New parent file name'
-        }
-    };
+    const translations = { vi: {}, en: {} };
 
     const defaultLibrary = [{ id: 'project-1', name: 'Project', kind: 'folder', children: [
         { id: 'sub-project-1', name: 'Sub-project', kind: 'folder', children: [
@@ -117,7 +66,7 @@
     };
     let collapsedFolders = readCollapsedFolders();
 
-    const text = (key) => translations[currentLanguage][key] || key;
+    const text = (key) => window.I18n.t('home.' + key);
     const save = () => {
         localStorage.setItem(storageKey, JSON.stringify(library));
         renderDashboardLibrary();
@@ -405,7 +354,7 @@
         } else if (action === 'rename') {
             showInputDialog(text('rename'), found.node.name, async (name) => {
                 if (found.node.cloudId && !await renameMindmapInCloud(found.node.cloudId, name)) {
-                    window.alert('Chưa đổi tên được trên cloud. Vui lòng thử lại.');
+                    window.alert(window.I18n.text('Chưa đổi tên được trên cloud. Vui lòng thử lại.'));
                     return;
                 }
                 found.node.name = name; save(); renderTree();
@@ -415,7 +364,7 @@
                 const maps = getMindmapDocuments([found.node]);
                 for (const map of maps) {
                     if (map.cloudId && !await deleteMindmapFromCloud(map.name, map.cloudId)) {
-                        window.alert('Chưa xóa được trên cloud. Vui lòng thử lại.');
+                        window.alert(window.I18n.text('Chưa xóa được trên cloud. Vui lòng thử lại.'));
                         return;
                     }
                 }
@@ -554,146 +503,22 @@
         libraryHeading.innerHTML = '<div><p class="dashboard-kicker">Thư viện</p><h2>Tất cả mindmap</h2></div><span>Được cập nhật gần đây</span>';
         // Mindmaps are managed from the left Library tree, not duplicated on the dashboard.
 
-        const readTasks = () => {
-            try { return JSON.parse(localStorage.getItem(storageKey)) || []; } catch { return []; }
-        };
-        let tasks = readTasks().filter((task) => task && task.id && task.title);
-        const saveTasks = () => {
-            localStorage.setItem(storageKey, JSON.stringify(tasks));
-            document.dispatchEvent(new CustomEvent('visualmind-dashboard-change'));
-        };
-
-        const renderTasks = () => {
-            dashboard.querySelectorAll('[data-task-list]').forEach((list) => {
-                const status = list.dataset.taskList;
-                const grouped = tasks.filter((task) => !task.trashedAt && task.status === status);
-                list.innerHTML = '';
-                if (!grouped.length) {
-                    return;
-                }
-                grouped.forEach((task) => {
-                    const item = document.createElement('article');
-                    item.className = 'todo-item';
-                    item.draggable = true;
-                    item.dataset.taskId = task.id;
-                    item.classList.toggle('is-completed', Boolean(task.completed));
-                    item.innerHTML = '<span class="todo-grip" aria-hidden="true">⠿</span><label class="todo-check"><input type="checkbox" data-toggle-task><span aria-hidden="true"></span></label><span class="todo-item-title"></span><button type="button" data-edit-task aria-label="Sửa công việc">🖊</button><button type="button" data-trash-task aria-label="Chuyển vào thùng rác">🗑</button>';
-                    item.querySelector('[data-toggle-task]').checked = Boolean(task.completed);
-                    item.querySelector('[data-toggle-task]').setAttribute('aria-label', 'Hoàn thành: ' + task.title);
-                    if (task.kind === 'goal') {
-                        item.querySelector('.todo-check').classList.add('goal-check');
-                        item.querySelector('.todo-check span').innerHTML = window.goalIcon;
-                    }
-                    item.querySelector('.todo-item-title').replaceWith(window.taskDisplay(task, () => { saveTasks(); renderTasks(); }));
-                    if (status !== 'inbox') {
-                        const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×';
-                        remove.setAttribute('aria-label', 'Bỏ khỏi ma trận');
-                        remove.onclick = () => { task.status = 'inbox'; saveTasks(); renderTasks(); };
-                        item.appendChild(remove);
-                    }
-                    list.appendChild(item);
-                });
-            });
-            window.renderPlannerMatrix?.();
-        };
-
-        dashboard.querySelector('[data-task-trash]').onclick = () => window.showTaskTrash();
-        dashboard.querySelector('[data-add-inbox]').addEventListener('click', () => {
-            const task = { id: 'task-' + crypto.randomUUID(), title: 'Việc mới', status: 'inbox' };
-            tasks.unshift(task);
-            saveTasks();
-            renderTasks();
-            const row = dashboard.querySelector('[data-task-list="inbox"] .todo-item');
-            const title = row.querySelector('.todo-item-title');
-            const input = document.createElement('input');
-            input.className = 'todo-inline-title';
-            input.value = task.title;
-            input.maxLength = 160;
-            input.setAttribute('aria-label', 'Tên công việc');
-            title.replaceWith(input);
-            row.draggable = false;
-            const finish = () => {
-                task.title = input.value.trim() || 'Việc mới';
-                saveTasks();
-                title.textContent = task.title;
-                input.replaceWith(title);
-                row.draggable = true;
-            };
-            input.addEventListener('blur', finish, { once: true });
-            input.addEventListener('keydown', event => {
-                if (event.key === 'Enter' || event.key === 'Escape') {
-                    event.preventDefault();
-                    input.blur();
-                }
-            });
-            input.focus();
-            input.select();
-        });
-
-        dashboard.addEventListener('click', (event) => {
-            const checkbox = event.target.closest('[data-toggle-task]');
-            if (checkbox) {
-                const item = checkbox.closest('.todo-item');
-                const task = tasks.find((entry) => entry.id === item.dataset.taskId);
-                if (!task) return;
-                task.completed = checkbox.checked;
-                saveTasks();
-                renderTasks();
-                return;
-            }
-            const trash = event.target.closest('[data-trash-task]');
-            if (trash) { const task = tasks.find(entry => entry.id === trash.closest('.todo-item').dataset.taskId); if (task) { task.trashedAt = new Date().toISOString(); saveTasks(); renderTasks(); } return; }
-            const button = event.target.closest('[data-edit-task]');
-            if (!button) return;
-            const task = tasks.find(entry => entry.id === button.closest('.todo-item').dataset.taskId);
-            if (task) window.editDashboardTask(task, () => { saveTasks(); renderTasks(); });
-        });
-
-        dashboard.addEventListener('dragstart', (event) => {
-            const item = event.target.closest('.todo-item[data-task-id]');
-            if (!item) return;
-            event.dataTransfer.effectAllowed = 'move';
-            event.dataTransfer.setData('text/plain', item.dataset.taskId);
-            item.classList.add('is-dragging');
-        });
-        dashboard.addEventListener('dragend', (event) => {
-            const item = event.target.closest('.todo-item');
-            if (item) item.classList.remove('is-dragging');
-            dashboard.querySelectorAll('.is-drag-over').forEach((list) => list.classList.remove('is-drag-over'));
-        });
-        dashboard.addEventListener('dragover', (event) => {
-            const list = event.target.closest('[data-task-list]');
-            if (!list) return;
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-            list.classList.add('is-drag-over');
-        });
-        dashboard.addEventListener('dragleave', (event) => {
-            const list = event.target.closest('[data-task-list]');
-            if (list && !list.contains(event.relatedTarget)) list.classList.remove('is-drag-over');
-        });
-        dashboard.addEventListener('drop', (event) => {
-            const list = event.target.closest('[data-task-list]');
-            if (!list) return;
-            event.preventDefault();
-            const planId = event.dataTransfer.getData('application/x-hodi-matrix-plan');
-            if (planId) { window.movePlannerToMatrix?.(planId, list.dataset.taskList); return; }
-            const task = tasks.find((entry) => entry.id === event.dataTransfer.getData('text/plain'));
-            if (!task) return;
-            task.status = list.dataset.taskList;
-            saveTasks();
-            renderTasks();
-        });
-        renderTasks();
         const dashboardStatus = document.createElement('p');
         dashboardStatus.className = 'dashboard-sync-status';
         dashboardStatus.textContent = window.dashboardSyncStatus || '';
         dashboardStatus.setAttribute('role', 'status');
         dashboard.before(dashboardStatus);
         document.addEventListener('visualmind-dashboard-status', event => { dashboardStatus.textContent = event.detail.text; });
-        document.addEventListener('visualmind-dashboard-restored', () => { tasks = readTasks(); renderTasks(); });
+        window.ChecklistModel.migrate();
         if (window.setupWeeklyPlanner) window.setupWeeklyPlanner(dashboard);
-        window.setupRadar?.(dashboard);
+        window.setupChecklist(dashboard);
+        window.setupWheel(dashboard);
+        const checklistColumn = document.createElement('div');
+        const planningColumn = document.createElement('div');
+        checklistColumn.className = planningColumn.className = 'dashboard-column';
+        checklistColumn.append(dashboard.querySelector('.checklist-panel'), dashboard.querySelector('.wheel-panel'));
+        planningColumn.append(dashboard.querySelector('.eisenhower-panel:not(.calendar-panel)'), dashboard.querySelector('.calendar-panel'));
+        dashboard.append(checklistColumn, planningColumn);
     };
 
     setupDashboard();

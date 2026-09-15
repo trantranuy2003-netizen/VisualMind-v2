@@ -19,13 +19,13 @@ async function signInWithGoogle() {
 async function signOut() {
     if (!supabaseClient) return { error: new Error('Supabase chưa được cấu hình.') };
     if (typeof window.saveDashboardToCloud === 'function' && !await window.saveDashboardToCloud()) {
-        alert('Dashboard chưa lưu xong lên cloud. Vui lòng thử lại trước khi đăng xuất.');
+        alert(window.I18n.text('Dashboard chưa lưu xong lên cloud. Vui lòng thử lại trước khi đăng xuất.'));
         return { error: new Error('Dashboard sync incomplete') };
     }
     if (typeof window.saveCurrentWorkToCloud === 'function') {
         const saved = await window.saveCurrentWorkToCloud(true);
         if (!saved) {
-            alert('Không thể lưu dữ liệu hiện tại lên cloud. Bạn vẫn đang đăng nhập để có thể thử lại.');
+            alert(window.I18n.text('Không thể lưu dữ liệu hiện tại lên cloud. Bạn vẫn đang đăng nhập để có thể thử lại.'));
             return { error: new Error('Could not save current work before signing out.') };
         }
     }

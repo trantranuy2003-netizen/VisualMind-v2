@@ -3,7 +3,8 @@ const path = require('node:path');
 const fs = require('node:fs');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 (async () => {
-    const browser = spawn('C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-software-rasterizer', '--no-first-run', '--remote-debugging-port=9223', '--user-data-dir=' + path.resolve(__dirname, '../.tmp-mindmap-cdp'), 'about:blank'], { windowsHide: true, stdio: 'ignore' });
+    const profile = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'visualmind-browser-'));
+    const browser = spawn('C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-software-rasterizer', '--no-first-run', '--remote-debugging-port=9223', '--user-data-dir=' + profile, 'about:blank'], { windowsHide: true, stdio: 'ignore' });
     let socket;
     try {
         let page;

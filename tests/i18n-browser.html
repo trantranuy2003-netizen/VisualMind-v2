@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8"><pre id="result">RUNNING</pre><script>
+(async()=>{try{localStorage.setItem('visualmind-language','en');const missing=[];
+for(const page of ['index.html','mindmap.html','flashcard.html']){const frame=document.createElement('iframe');frame.src='../'+page;document.body.append(frame);await new Promise(r=>frame.onload=r);await new Promise(r=>setTimeout(r,250));const d=frame.contentDocument;
+const walk=d.createTreeWalker(d.body,NodeFilter.SHOW_TEXT);let node;while(node=walk.nextNode()){if(node.parentElement.closest('script,style,textarea,input,[contenteditable],[data-user-content],.todo-item-title,.planner-task-title,.calendar-event-title,#fcCardText,svg,.library-node-name'))continue;if(node.parentElement.getClientRects().length&&/[ĂăÂâĐđÊêÔôƠơƯưÀÁẢÃẠàáảãạẾếỆệẤấỨứỜờỮữỐốộỈỉỊịỲỳỸỹ]/.test(node.textContent)&&node.textContent.trim()!=='VN')missing.push(page+': '+node.textContent.trim());}
+for(const node of d.querySelectorAll('[placeholder],[title],[aria-label]')){if(!node.getClientRects().length)continue;for(const attr of ['placeholder','title','aria-label']){const value=node.getAttribute(attr);if(value&&/[ĂăÂâĐđÊêÔôƠơƯưÀÁẢÃẠàáảãạẾếỆệẤấỨứỜờỮữỐốộỈỉỊịỲỳỸỹ]/.test(value)&&!value.includes('Tiếng Việt'))missing.push(page+' '+attr+': '+value);}}frame.remove();}
+document.querySelector('#result').textContent=missing.length?'FAIL: '+[...new Set(missing)].join('\n'):'PASS: visible UI and accessible labels on all pages use English.';
+}catch(e){document.querySelector('#result').textContent='FAIL: '+e.stack;}})();</script>

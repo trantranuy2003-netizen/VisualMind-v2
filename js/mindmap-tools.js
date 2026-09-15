@@ -1,5 +1,5 @@
 (() => {
-    const tr = (vi, en) => localStorage.getItem('visualmind-language') === 'en' ? en : vi;
+    const tr = (vi, en) => window.I18n.pair(vi, en);
     const button = (vi, en, action) => {
         const node = document.createElement('button'); node.type = 'button'; node.className = 'control-btn';
         node.dataset.mmVi = vi; node.dataset.mmEn = en; node.textContent = tr(vi, en); node.onclick = action; return node;

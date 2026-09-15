@@ -76,7 +76,7 @@
             saveHistory();
             textarea.value = '';
             preview.style.color = '#16A34A';
-            preview.textContent = `✅ Đã tạo ${parsed.length} flashcard mới. Tổng cộng ${mindmap.flashcards.length} flashcard.`;
+            preview.textContent = window.I18n.t('flashCreated',{count:parsed.length,total:mindmap.flashcards.length});
             fcOrder = mindmap.flashcards.map(c => c.id);
             fcIndex = Math.max(0, fcOrder.length - parsed.length);
             fcRevealed = false;
@@ -145,7 +145,7 @@
 
             if (historyEl && card.attempts && card.attempts.length > 0) {
                 const historyHtml = card.attempts.slice().reverse().map(a => {
-                    const time = new Date(a.timestamp).toLocaleTimeString('vi-VN');
+                    const time = new Date(a.timestamp).toLocaleTimeString(window.I18n.locale());
                     const status = a.correct ? '✅ Đúng' : '❌ Sai';
                     const statusClass = a.correct ? 'h-correct' : 'h-wrong';
                     return `<div class="history-item">
@@ -154,7 +154,7 @@
                             <span class="${statusClass}">${status}</span>
                         </div>`;
                 }).join('');
-                historyEl.innerHTML = `<div style="font-size:11px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;">📝 Lịch sử trả lời (${card.attempts.length} lần)</div>` +
+                historyEl.innerHTML = `<div style="font-size:11px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;">${window.I18n.t('flashHistory',{count:card.attempts.length})}</div>` +
                     historyHtml;
                 historyEl.style.display = 'block';
             } else if (historyEl) {
@@ -172,7 +172,7 @@
             const userAnswer = document.getElementById('fcUserAnswer');
             const answer = userAnswer.value.trim();
             if (!answer) {
-                alert('Vui lòng nhập câu trả lời của bạn.');
+                alert(window.I18n.text('Vui lòng nhập câu trả lời của bạn.'));
                 return;
             }
 
@@ -292,12 +292,7 @@
             const totalAttempts = mindmap.flashcards.reduce((sum, c) => sum + (c.attempts ? c.attempts.length : 0), 0);
             const rate = totalAttempts > 0 ? Math.round((correct / totalAttempts) * 100) : 0;
 
-            alert(`📊 Thống kê flashcard\n\n` +
-                `📄 Tổng số thẻ: ${total}\n` +
-                `✍️ Đã trả lời: ${attempted}\n` +
-                `📝 Tổng lượt trả lời: ${totalAttempts}\n` +
-                `✅ Đúng: ${correct}\n` +
-                `📈 Tỷ lệ đúng: ${rate}%`);
+            alert(window.I18n.t('flashStats',{total,attempted,totalAttempts,correct,rate}));
         }
 
         function fcDeleteCurrent() {
@@ -307,7 +302,7 @@
         }
 
         function fcDeleteById(cardId) {
-            if (!confirm('Xoá flashcard này?')) return;
+            if (!confirm(window.I18n.text('Xoá flashcard này?'))) return;
             mindmap.flashcards = mindmap.flashcards.filter(c => c.id !== cardId);
             fcOrder = fcOrder.filter(id => id !== cardId);
             if (fcIndex >= fcOrder.length) fcIndex = Math.max(0, fcOrder.length - 1);
@@ -356,7 +351,7 @@
             if (!card) return;
             const q = document.getElementById('fcEditQuestion').value.trim();
             const a = document.getElementById('fcEditAnswer').value.trim();
-            if (!q) { alert('Câu hỏi không được để trống');
+            if (!q) { alert(window.I18n.text('Câu hỏi không được để trống'));
                 return; }
             const payload = {
                 type: 'flashcard',
@@ -584,7 +579,7 @@
 
             const record = await loadMindmapFromCloudById(cloudId);
             if (!record || !record.data) {
-                alert('Không thể tải flashcard từ cloud.');
+                alert(window.I18n.text('Không thể tải flashcard từ cloud.'));
                 return;
             }
 

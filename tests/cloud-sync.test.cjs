@@ -62,8 +62,11 @@ function browser() {
         document, localStorage, sessionStorage: localStorage, crypto: webcrypto, TextEncoder,
         window: { supabase: { createClient: () => client }, addEventListener() {} },
         CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options?.detail; } },
-        console: { error() {}, warn() {} }, setTimeout
+        console: { error() {}, warn() {} }, setTimeout, queueMicrotask() {}
     });
+    vm.runInContext(fs.readFileSync(path.join(root, 'js/i18n.js'), 'utf8'), context);
+    context.I18n = context.window.I18n;
+    vm.runInContext(fs.readFileSync(path.join(root, 'js/dictionary.js'), 'utf8'), context);
     const cloudSource = fs.readFileSync(path.join(root, 'js/supabase-client.js'), 'utf8');
     vm.runInContext(cloudSource.slice(0, cloudSource.indexOf('function showAuthModal')), context);
     vm.runInContext(fs.readFileSync(path.join(root, 'js/dashboard-i18n.js'), 'utf8'), context);

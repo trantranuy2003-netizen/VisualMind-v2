@@ -75,7 +75,7 @@
             let local = read(cacheKey(account), {});
             const remote = data?.[0];
             // A brand-new browser has an empty cache, not an intentional deletion.
-            const hasLocal = local.snapshot?.tasks?.length || local.snapshot?.planner?.items?.length || local.snapshot?.planner?.recurring?.length || Object.keys(local.snapshot?.radar?.months || {}).length;
+            const hasLocal = local.snapshot?.tasks?.length || local.snapshot?.planner?.items?.length || local.snapshot?.planner?.recurring?.length || local.snapshot?.radar?.wheel?.goals?.length || Object.keys(local.snapshot?.radar?.months || {}).length;
             if (remote && (!local.dirty || (!hasLocal && !local.edited))) {
                 local = { snapshot: { tasks: remote.data.tasks || [], planner: remote.data.planner || empty().planner, radar: remote.data.radar || empty().radar }, dirty: false, revision: crypto.randomUUID() };
                 apply(local.snapshot);

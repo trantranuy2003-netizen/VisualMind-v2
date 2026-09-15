@@ -29,7 +29,7 @@
         const zoomLevels = [32, 48, 64, 96, 128];
         let hourHeight = Number(localStorage.getItem('visualmind-week-hour-height')) || 64;
         if (!zoomLevels.includes(hourHeight)) hourHeight = 64;
-        const calendarText = (vi, en) => localStorage.getItem('visualmind-language') === 'en' ? en : vi;
+        const calendarText = (vi, en) => window.I18n.pair(vi, en);
         let draggingPlan = null;
         let scrollToNow = false;
         const M = window.CalendarModel;
@@ -52,7 +52,7 @@
             node.addEventListener('click', action);
             return node;
         };
-        const formatDate = (value) => parseDate(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        const formatDate = (value) => parseDate(value).toLocaleDateString(window.I18n.locale(), { day: '2-digit', month: '2-digit' });
         const daily = el('div', 'planner-daily');
         daily.innerHTML = '<section class="todo-group"><div class="todo-group-heading"><h3 data-dashboard-i18n="scheduled">Đã lên lịch</h3><button type="button" class="todo-group-add" data-add-scheduled aria-label="Thêm việc có lịch">+</button></div><div class="todo-group-list" data-scheduled></div></section><section class="todo-group"><div class="todo-group-heading"><h3 data-dashboard-i18n="recurring">Việc lặp lại</h3><button type="button" class="todo-group-add" data-add-recurring aria-label="Thêm việc lặp lại">+</button></div><div class="todo-group-list" data-recurring></div></section>';
         dashboard.querySelector('.todo-panel').appendChild(daily);
@@ -170,6 +170,7 @@
             control.onclick = () => { scrollToNow = control.dataset.calendarView === 'week' && calendarView !== 'week'; calendarView = control.dataset.calendarView; month = new Date(parseDate(selectedDate).getFullYear(), parseDate(selectedDate).getMonth(), 1); renderCalendar(); };
         });
         const renderWeekly = () => {
+            if (window.setupChecklist) return;
             const nav = weekly.querySelector('[data-week-nav]'); nav.replaceChildren();
             const shift = amount => { const date = parseDate(week); date.setDate(date.getDate() + amount); week = dateKey(date); renderWeekly(); };
             const end = parseDate(week); end.setDate(end.getDate() + 6);
@@ -188,7 +189,7 @@
                     const checkbox = el('label', 'todo-check');
                     const check = el('input'); check.type = 'checkbox';
                     check.checked = (item.completedDates || []).includes(selectedDate);
-                    check.setAttribute('aria-label', 'Hoàn thành: ' + item.title);
+                    check.setAttribute('aria-label', window.I18n.t('completeTask', {title:item.title}));
                     const box = el('span'); box.setAttribute('aria-hidden', 'true');
                     checkbox.append(check, box);
                     if (item.kind === 'goal') { checkbox.classList.add('goal-check'); box.innerHTML = window.goalIcon; }
@@ -221,6 +222,7 @@
             return label;
         };
         const renderDaily = () => {
+            if (window.setupChecklist) return;
             const renderList = (selector, items, recurring) => {
                 const list = typeof selector === 'string' ? daily.querySelector(selector) : selector;
                 if (typeof selector === 'string') list.replaceChildren();
@@ -234,7 +236,7 @@
                         event.dataTransfer.effectAllowed = 'copyMove';
                         row.classList.add('is-dragging');
                     });
-                    const check = el('input'); check.type = 'checkbox'; check.checked = (item.completedDates || []).includes(occurrenceDate); check.setAttribute('aria-label', `Hoàn thành: ${item.title}`);
+                    const check = el('input'); check.type = 'checkbox'; check.checked = (item.completedDates || []).includes(occurrenceDate); check.setAttribute('aria-label', window.I18n.t('completeTask', {title:item.title}));
                     row.classList.toggle('is-completed', check.checked);
                     check.onchange = () => { item.completedDates = (item.completedDates || []).filter(date => date !== occurrenceDate); if (check.checked) item.completedDates.push(occurrenceDate); save(); };
                     const grip = el('span', 'todo-grip', '⠿');
@@ -349,7 +351,7 @@
             };
             const first = isWeek ? parseDate(weekOf(selectedDate)) : new Date(month.getFullYear(), month.getMonth(), 1);
             const last = new Date(first); last.setDate(last.getDate() + 6);
-            const caption = isWeek ? formatDate(dateKey(first)) + ' – ' + formatDate(dateKey(last)) + ' · ' + last.getFullYear() : month.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' });
+            const caption = isWeek ? formatDate(dateKey(first)) + ' – ' + formatDate(dateKey(last)) + ' · ' + last.getFullYear() : month.toLocaleDateString(window.I18n.locale(), { month: 'long', year: 'numeric' });
             nav.append(button('‹', () => shift(-1), isWeek ? 'Tuần trước' : 'Tháng trước'), el('span', '', caption), button('›', () => shift(1), isWeek ? 'Tuần sau' : 'Tháng sau'), button('Hôm nay', () => { scrollToNow = true; selectedDate = dateKey(new Date()); month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); render(); }));
             const grid = calendar.querySelector('[data-calendar]'); grid.replaceChildren();
             if (isWeek) {
@@ -416,7 +418,7 @@
                     }
                     entries.forEach(entry => { if (entry.start !== null) positions.set(entry, entry); });
                 }
-                cell.setAttribute('aria-label', `${date.toLocaleDateString('vi-VN')}, ${items.length} công việc`);
+                cell.setAttribute('aria-label', window.I18n.t('calendarCount', {date:date.toLocaleDateString(window.I18n.locale()), count:items.length}));
                 (isWeek ? entries : entries.slice(0, 2)).forEach(entry => {
                     const item = entry.item;
                     const occurrenceDate = entry.origin;
@@ -424,12 +426,12 @@
                     eventRow.addEventListener('dragstart', event => { event.stopPropagation(); event.dataTransfer.setData('application/x-hodi-calendar', JSON.stringify({ id: item.id, date: occurrenceDate, offset: isWeek && entry.start !== null && event.clientY ? (event.clientY - eventRow.getBoundingClientRect().top) / hourHeight * 60 : 0 })); event.dataTransfer.effectAllowed = 'move'; });
                     eventRow.addEventListener('click', event => event.stopPropagation());
                     const checkLabel = el('label', 'todo-check');
-                    const check = el('input'); check.type = 'checkbox'; check.checked = (item.completedDates || []).includes(occurrenceDate); check.setAttribute('aria-label', 'Hoàn thành: ' + item.title);
+                    const check = el('input'); check.type = 'checkbox'; check.checked = (item.completedDates || []).includes(occurrenceDate); check.setAttribute('aria-label', window.I18n.t('completeTask', {title:item.title}));
                     const box = el('span'); box.setAttribute('aria-hidden', 'true');
                     if (item.kind === 'goal') { checkLabel.classList.add('goal-check'); box.innerHTML = window.goalIcon; }
                     checkLabel.append(check, box); eventRow.classList.toggle('is-completed', check.checked);
                     check.onchange = () => { item.completedDates = (item.completedDates || []).filter(date => date !== occurrenceDate); if (check.checked) item.completedDates.push(occurrenceDate); save(); };
-                    const title = button(item.title, () => calendarEditor.edit(item, occurrenceDate), 'Sửa công việc: ' + item.title); title.className = 'calendar-event-title';
+                    const title = button(item.title, () => calendarEditor.edit(item, occurrenceDate), window.I18n.t('editNamedTask', {title:item.title})); title.className = 'calendar-event-title';
                     const remove = button('×', () => { item.excludedDates = [...new Set([...(item.excludedDates || []), occurrenceDate])]; save(); }, 'Bỏ khỏi ngày này'); remove.className = 'calendar-event-remove';
                     eventRow.append(checkLabel, title, remove);
                     if (item.fromTime || item.endToTime) eventRow.appendChild(el('span', 'calendar-event-time', [item.fromTime, item.endToTime].filter(Boolean).join('–')));
@@ -475,7 +477,7 @@
                         } else allDay.appendChild(eventRow);
                     } else cell.appendChild(eventRow);
                 });
-                if (!isWeek && items.length > 2) { const more = button('+' + (items.length - 2) + ' mục', () => {}, 'Xem tất cả công việc'); more.className = 'calendar-more'; cell.appendChild(more); }
+                if (!isWeek && items.length > 2) { const more = button(window.I18n.t('moreItems', {count:items.length - 2}), () => {}, 'Xem tất cả công việc'); more.className = 'calendar-more'; cell.appendChild(more); }
                 if (!isWeek) {
                     const inspect = button('', event => {}, calendarText('Xem chi tiết ngày ', 'View day details: ') + value);
                     inspect.className = 'calendar-day-inspect';
@@ -531,7 +533,7 @@
             const overlay = el('div', 'library-dialog-overlay');
             const panel = el('section', 'library-dialog calendar-day-dialog');
             panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true');
-            panel.setAttribute('aria-label', `Công việc ngày ${formatDate(value)}`);
+            panel.setAttribute('aria-label', window.I18n.t('tasksOn', {date:formatDate(value)}));
             const heading = el('div', 'dashboard-panel-heading');
             const dayTitle = el('h3'); heading.appendChild(dayTitle);
             const close = () => { overlay.remove(); calendar.querySelector(`[data-date="${value}"]`)?.focus(); };
@@ -547,7 +549,7 @@
                 const item = entry.item, occurrenceDate = entry.origin;
                 const row = el('div', 'planner-day-task');
                 const check = el('input'); check.type = 'checkbox'; check.checked = (item.completedDates || []).includes(occurrenceDate);
-                check.setAttribute('aria-label', `Hoàn thành: ${item.title}`);
+                check.setAttribute('aria-label', window.I18n.t('completeTask', {title:item.title}));
                 row.classList.toggle('is-completed', check.checked);
                 check.onchange = () => {
                     item.completedDates = (item.completedDates || []).filter(date => date !== occurrenceDate);
