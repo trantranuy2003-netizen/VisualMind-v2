@@ -46,7 +46,8 @@
         const categoryName=linkedCategory?window.WheelModel.categoryName(linkedCategory):task.category;
         if (categoryName) {
             const category = document.createElement('span'); category.className = 'task-meta-category'; category.title = categoryName;
-            category.style.setProperty('--category-color', /^#[0-9a-f]{6}$/i.test(task.categoryColor || '') ? task.categoryColor : '#d3edbd');
+            const background=linkedCategory?window.WheelModel.categoryColor(linkedCategory):(/^#[0-9a-f]{6}$/i.test(task.categoryColor || '')?task.categoryColor:'#d3edbd');
+            category.style.setProperty('--category-color',background);if(window.WheelModel)category.style.color=window.WheelModel.textColor(background);
             const name = document.createElement('span'); name.textContent = categoryName; name.dataset.userContent='';category.appendChild(name);
             if (onChange) {
                 const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×'; remove.setAttribute('aria-label', 'Gỡ danh mục');

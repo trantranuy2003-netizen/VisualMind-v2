@@ -33,6 +33,12 @@
     };
     const palette=['#f6d5df','#d4e6fa','#d6eddd','#e5dafa','#f9e5c7','#d1eceb'];
     const categoryColor=category=>category.color || palette[Math.max(0,load().categories.findIndex(item=>item.id===category.id))%palette.length];
+    const textColor=color=>{
+        const hex=/^#[0-9a-f]{6}$/i.test(color||'')?color:'#ffffff';
+        const channels=[1,3,5].map(index=>parseInt(hex.slice(index,index+2),16)/255).map(value=>value<=0.04045?value/12.92:((value+0.055)/1.055)**2.4);
+        const luminance=channels[0]*0.2126+channels[1]*0.7152+channels[2]*0.0722;
+        return (luminance+0.05)/0.05>=1.05/(luminance+0.05)?'#000000':'#ffffff';
+    };
     const pointsPerDone=task=>Number(task.wheelPoints ?? (10/Math.max(1,Number(task.wheelCap)||1)));
     const goalScore=(goal,tasks=C.all())=>Math.min(10,tasks.filter(task=>!task.trashedAt&&!task.seriesId&&task.wheelGoalId===goal.id&&(!Object.hasOwn(task,'wheelCategoryId')||task.wheelCategoryId===goal.categoryId)).reduce((sum,task)=>sum+Number(task.wheelWeight||0)/100*pointsPerDone(task)*completions(task,tasks),0));
     const score=(wheel,categoryId,tasks=C.all())=>{
@@ -48,7 +54,7 @@
         if(wheel.goals.filter(item=>item.categoryId===goal.categoryId).reduce((sum,item)=>sum+Number(item.weight||0),0)+Number(goal.weight)>100+1e-8)return t('invalidWeight');
         save(value=>{value.goals.push(goal);value.archivedGoals=value.archivedGoals.filter(item=>item.id!==id);});return '';
     };
-    window.WheelModel={load,save,score,goalScore,pointsPerDone,categoryColor,completions,categoryName,archiveGoal,restoreGoal};
+    window.WheelModel={load,save,score,goalScore,pointsPerDone,categoryColor,textColor,completions,categoryName,archiveGoal,restoreGoal};
     window.setupWheel=dashboard=>{
         load();document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));
         const card=el('section','todo-panel wheel-panel');card.dataset.wheel='';dashboard.append(card);
@@ -69,6 +75,8 @@
             const body=el('div','wheel-tree');panel.append(body);const collapsed=new Set();
             const draw=()=>{
                 body.replaceChildren();const wheel=load(),goals=wheel.goals.filter(goal=>goal.categoryId===category.id);
+                const background=categoryColor(wheel.categories.find(item=>item.id===category.id)||category);
+                panel.style.setProperty('--category-pastel',background);panel.style.setProperty('--category-text',textColor(background));
                 body.append(el('p','radar-muted',t('weightNotice',{value:score(wheel,category.id).total})));
                 const columns=el('div','wheel-tree-row wheel-tree-columns');
                 for(const key of ['goalTask','weight','pointsPerDone','score','actions'])columns.append(el('span','',t(key)));
@@ -109,7 +117,9 @@
             const rows=[];const list=el('div','wheel-axis-list');form.append(list);
             const addRow=category=>{
                 const row=el('div','wheel-axis-row'),input=el('input');input.type='text';input.value=categoryName(category)||'';input.required=true;input.maxLength=80;input.setAttribute('aria-label',t('axisName'));
-                const entry={category,input,row};rows.push(entry);row.append(input,button('removeAxis',()=>{rows.splice(rows.indexOf(entry),1);row.remove();},'×'));list.append(row);return input;
+                const color=el('input');color.type='color';color.value=categoryColor(category);color.setAttribute('aria-label',t('Màu danh mục'));
+                const preview=()=>{input.style.backgroundColor=color.value;input.style.color=textColor(color.value);};color.oninput=preview;preview();
+                const entry={category,input,color,row};rows.push(entry);row.append(input,color,button('removeAxis',()=>{rows.splice(rows.indexOf(entry),1);row.remove();},'×'));list.append(row);return input;
             };
             wheel.categories.forEach(addRow);
             form.append(button('addAxis',()=>addRow({id:crypto.randomUUID(),name:''}).focus(),'+ '+t('addAxis')));
@@ -117,7 +127,7 @@
             form.append(el('p','radar-muted',t('axisRemovalNote')));
             const error=el('p','task-editor-error');error.setAttribute('role','alert');form.append(error);
             const submit=button('save',()=>{});submit.type='submit';form.append(submit);
-            form.onsubmit=event=>{event.preventDefault();const categories=rows.map(({category,input})=>({...category,key:input.value.trim()===categoryName(category)?category.key:undefined,name:input.value.trim()}));
+            form.onsubmit=event=>{event.preventDefault();const categories=rows.map(({category,input,color})=>({...category,color:color.value,key:input.value.trim()===categoryName(category)?category.key:undefined,name:input.value.trim()}));
                 if(categories.length<3||categories.some(c=>!c.name)||new Set(categories.map(c=>categoryName(c).toLocaleLowerCase())).size!==categories.length){error.textContent=t('axisValidation');return;}
                 save(value=>{value.archivedCategories=[...(value.archivedCategories||[]),...value.categories].filter((c,i,all)=>!categories.some(active=>active.id===c.id)&&all.findIndex(other=>other.id===c.id)===i);value.categories=categories;});close();if(typeof after==='function')after();
             };

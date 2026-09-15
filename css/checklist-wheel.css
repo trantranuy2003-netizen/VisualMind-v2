@@ -90,4 +90,7 @@
 .task-category-tag { font-size:11px; color:#384152; padding:3px 8px; border-radius:12px; max-width:160px; overflow-wrap:anywhere; }
 .wheel-tree-dialog .wheel-tree { font-size:13px; }
 .wheel-tree-dialog .dashboard-panel-heading h3 { font-size:18px; }
-.wheel-tree-dialog .wheel-tree-goal > .wheel-tree-row { background:var(--category-pastel); color:#384152; }
+.wheel-tree-dialog .wheel-tree-goal > .wheel-tree-row { background:var(--category-pastel); color:var(--category-text,#000); }
+.wheel-axis-row input[type=color] { flex:0 0 40px; width:40px; height:38px; padding:3px; cursor:pointer; }
+.wheel-tree-goal > .wheel-tree-row .planner-button,
+.wheel-tree-goal > .wheel-tree-row .wheel-goal-icon { color:inherit; }

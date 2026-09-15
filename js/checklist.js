@@ -91,7 +91,7 @@
             const summary=el('small','task-schedule-summary',window.taskScheduleSummary(task));summary.title=summary.textContent;
             const W=window.WheelModel, wheel=W.load(), goal=wheel.goals.find(item=>item.id===task.wheelGoalId);
             const category=wheel.categories.find(item=>item.id===(task.wheelCategoryId||goal?.categoryId));
-            if(category){const tag=el('span','task-category-tag',W.categoryName(category));tag.dataset.userContent='';tag.style.backgroundColor=W.categoryColor(category);node.append(tag);}
+            if(category){const tag=el('span','task-category-tag',W.categoryName(category));tag.dataset.userContent='';tag.style.backgroundColor=W.categoryColor(category);tag.style.color=W.textColor(W.categoryColor(category));node.append(tag);}
             node.append(summary);
             node.append(button('edit',()=>window.editChecklistTask(task), '✎'));
             if (matrix) {const back=button('toChecklist',()=>C.update(task.id,item=>{item.matrixStatus=null;delete item.matrixDate;}),'×');back.dataset.returnChecklist='';node.append(back);}
@@ -104,7 +104,7 @@
             if (view.value==='custom' && (!start.value || !end.value || end.value<start.value)) {error.textContent=t('invalidRange');return;} error.textContent='';
             const range=C.period(view.value,view.value==='custom'?start.value:C.today(),end.value), groups=C.groups(C.load(),range);
             body.replaceChildren(); header.querySelector('h2').textContent=t(view.value);
-            rangeLabel.textContent=t('dateRange',{start:formatDate(range.start),end:formatDate(range.end)});
+            rangeLabel.textContent=range.start===range.end?formatDate(range.start):t('dateRange',{start:formatDate(range.start),end:formatDate(range.end)});
             for (const key of ['unscheduled','scheduled','recurring','previous']) {
                 const group=el('section','todo-group'); group.dataset.checklistGroup=key;
                 const heading=el('div','todo-group-heading');heading.append(el('h3','',t(key)),button('addTask',()=>{

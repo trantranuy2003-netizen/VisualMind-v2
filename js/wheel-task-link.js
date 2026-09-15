@@ -24,6 +24,9 @@
         const note=el('p','radar-muted',t('wheelLinkOptional'));section.append(note);
         const scoring=el('div','task-link-scoring');section.append(scoring);
         const weight=field(scoring,'taskWeight','number',task.wheelWeight ?? 100);weight.min=0;weight.max=100;weight.step='any';
+        let automaticWeight=task.wheelWeight == null;
+        weight.addEventListener('input',()=>{automaticWeight=false;});
+        const remainingWeight=id=>Math.max(0,100-C.all().filter(item=>!item.trashedAt&&!item.seriesId&&item.wheelGoalId===id&&item.id!==task.id).reduce((sum,item)=>sum+Number(item.wheelWeight||0),0));
         const points=field(scoring,'pointsPerDone','number',W.pointsPerDone(task));points.min=0;points.max=10;points.step='any';
         const options=(input,items,selected)=>{input.replaceChildren();const none=el('option','',t('noSelection'));none.value='';input.append(none);for(const item of items){const option=el('option','',item.name);option.value=item.id;option.dataset.userContent='';input.append(option);}input.value=items.some(item=>item.id===selected)?selected:'';};
         const refresh=()=>{
@@ -33,8 +36,10 @@
             const goals=[...wheel.goals,...(wheel.archivedGoals||[]).filter(item=>item.id===goalId).map(item=>({...item,archived:true}))];
             options(goal,goals.filter(item=>item.categoryId===categoryId).map(item=>({id:item.id,name:item.title+(item.archived?' · '+t('archived'):'')})),goalId);goalId=goal.value;
             const activeCategory=wheel.categories.some(item=>item.id===categoryId),activeGoal=wheel.goals.some(item=>item.id===goalId);
-            category.style.backgroundColor=wheel.categories.find(item=>item.id===categoryId)?W.categoryColor(wheel.categories.find(item=>item.id===categoryId)):'';goal.disabled=!categoryId;add.disabled=!activeCategory;edit.disabled=!activeGoal||!activeCategory;remove.disabled=!activeGoal;restore.disabled=!activeCategory||!(wheel.archivedGoals||[]).some(item=>item.categoryId===categoryId);
+            category.style.backgroundColor=wheel.categories.find(item=>item.id===categoryId)?W.categoryColor(wheel.categories.find(item=>item.id===categoryId)):'';category.style.color=category.style.backgroundColor?W.textColor(W.categoryColor(wheel.categories.find(item=>item.id===categoryId))):'';goal.disabled=!categoryId;add.disabled=!activeCategory;edit.disabled=!activeGoal||!activeCategory;remove.disabled=!activeGoal;restore.disabled=!activeCategory||!(wheel.archivedGoals||[]).some(item=>item.categoryId===categoryId);
             const linked=Boolean(categoryId&&goalId);scoring.hidden=!linked;note.textContent=t(linked&&(!activeCategory||!activeGoal)?'archivedLink':'wheelLinkOptional');
+            if(linked&&automaticWeight)weight.value=remainingWeight(goalId);
+            if(linked&&activeCategory&&activeGoal&&Number(weight.value)===0)note.textContent=t('zeroTaskWeight');
             for(const input of [weight,points]){input.disabled=!linked||Boolean(task.seriesId);input.required=linked&&!task.seriesId;}
         };
         category.onchange=()=>{categoryId=category.value;goalId='';refresh();};

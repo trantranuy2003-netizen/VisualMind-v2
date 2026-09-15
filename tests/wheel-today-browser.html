@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><pre id="result">RUNNING</pre><script>
+localStorage.setItem('visualmind-language','vi');localStorage.setItem('visualmind-weekly-planner',JSON.stringify({items:[],recurring:[]}));localStorage.setItem('visualmind-eisenhower-tasks','[]');localStorage.setItem('visualmind-radar','{}');
+const frame=document.createElement('iframe');frame.src='../index.html?test=1';document.body.append(frame);
+frame.onload=async()=>{try{
+const w=frame.contentWindow,d=frame.contentDocument,C=w.ChecklistModel,W=w.WheelModel;
+const assert=(value,message)=>{if(!value)throw Error(message);};
+const pause=()=>new Promise(r=>setTimeout(r,150));const form=()=>[...d.querySelectorAll('.wheel-form')].at(-1);
+await pause();d.querySelector('.wheel-hit').dispatchEvent(new w.MouseEvent('click'));d.querySelector('.wheel-tree [data-ui-key="addGoal"]').click();form().elements.goalName.value='Evening goal';form().elements.goalWeight.value=100;form().requestSubmit();await pause();
+assert(d.querySelector('.checklist-range').textContent===C.today().split('-').reverse().join('/'),'Single date shown once');
+W.load().categories.forEach(category=>assert(W.textColor('#f6d5df')==='#000000'&&W.textColor('#192030')==='#ffffff','Contrasting text'));
+W.save(wheel=>{wheel.categories[0].color='#f6d5df';});
+for(const variant of ['start-only','end-time','repeat']){
+ d.querySelector('.wheel-tree-actions [data-ui-key="addTask"]').click();const f=form();f.elements.taskName.value=variant;f.elements.fromTime.value='22:00';f.elements.start.value=C.today().split('-').reverse().join('/');if(variant==='end-time')f.elements.endToTime.value='23:00';if(variant==='repeat')f.querySelector('[data-repeat-day="'+new Date().getDay()+'"]').click();f.requestSubmit();await pause();
+ const task=C.all().find(t=>t.title===variant);assert(task,'Save '+variant);const row=d.querySelector('.checklist-panel [data-checklist-task="'+task.id+'"]');assert(row&&row.getClientRects().length,'Visible in Today '+variant);assert(row.closest('[data-checklist-group]').dataset.checklistGroup===(variant==='repeat'?'recurring':'scheduled'),'Correct section '+variant);assert([...d.querySelectorAll('.calendar-event-title')].some(n=>n.textContent===variant),'Calendar '+variant);
+}
+w.WheelUI.settings();const color=form().querySelector('input[type=color]');color.value='#192030';color.dispatchEvent(new w.Event('input'));assert(form().querySelector('input[type=text]').style.color==='rgb(255, 255, 255)','Live dark color preview');form().requestSubmit();await pause();assert(W.load().categories[0].color==='#192030','Saved category color');for(const tag of d.querySelectorAll('.task-category-tag'))assert(tag.style.backgroundColor==='rgb(25, 32, 48)'&&tag.style.color==='rgb(255, 255, 255)','Updated task tags');
+assert(!w.testErrors.length,w.testErrors.join('; '));frame.onload=()=>{try{const d=frame.contentDocument;for(const title of ['start-only','end-time','repeat'])assert([...d.querySelectorAll('.checklist-panel .todo-item-title')].some(n=>n.textContent===title),'Retained after reload '+title);document.querySelector('#result').textContent='PASS: Wheel task at 22:00 today, optional end time, repeat, Vietnamese UI, Calendar, category color/contrast, single date and reload.';}catch(e){document.querySelector('#result').textContent='FAIL: '+e.stack;}};frame.contentWindow.location.reload();
+}catch(e){document.querySelector('#result').textContent='FAIL: '+e.stack;}};
+</script>
