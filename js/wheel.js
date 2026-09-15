@@ -106,6 +106,9 @@
                         taskRow.append(taskName,el('span','',task.wheelWeight+'%'),el('span','',pointsPerDone(task).toFixed(2)),count,taskActions);branch.append(taskRow);
                     });body.append(tree);
                 });
+                body.querySelectorAll('.wheel-tree-goal .wheel-tree-row').forEach(row=>{
+                    ['weight','pointsPerDone',row.classList.contains('wheel-tree-task')?'doneCount':'score'].forEach((key,index)=>{row.children[index+1].dataset.label=t(key);});
+                });
                 body.append(button('addGoal',()=>editGoal(category.id,null,draw),'+ '+t('addGoal')));
                 const archiveError=el('p','task-editor-error');archiveError.setAttribute('role','alert');body.append(archiveError);
                 for(const goal of wheel.archivedGoals||[])if(goal.categoryId===category.id)body.append(button('restoreGoal',()=>{archiveError.textContent=restoreGoal(goal.id);},t('restoreGoal')+': '+goal.title));

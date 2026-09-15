@@ -157,7 +157,24 @@
                     document.dispatchEvent(new CustomEvent('visualmind-dashboard-change'));
                     render(); overlay.querySelector('[data-close]').focus();
                 };
-                row.append(title, restore); list.appendChild(row);
+                const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'trash-delete';
+                const translate = key => window.DashboardUI?.t(key) || window.I18n?.t(key) || key;
+                remove.textContent = translate('Xóa vĩnh viễn');
+                remove.setAttribute('aria-label', translate('Xóa vĩnh viễn') + ': ' + task.title);
+                remove.onclick = () => {
+                    if (!window.confirm(translate('confirmPermanentDelete') + '\n\n' + task.title)) return;
+                    const currentTasks = JSON.parse(localStorage.getItem('visualmind-eisenhower-tasks') || '[]');
+                    const currentPlanner = JSON.parse(localStorage.getItem('visualmind-weekly-planner') || '{}');
+                    const keep = item => !(item.id === task.id && item.trashedAt);
+                    localStorage.setItem('visualmind-eisenhower-tasks', JSON.stringify(currentTasks.filter(keep)));
+                    currentPlanner.items = (currentPlanner.items || []).filter(keep);
+                    currentPlanner.recurring = (currentPlanner.recurring || []).filter(keep);
+                    localStorage.setItem('visualmind-weekly-planner', JSON.stringify(currentPlanner));
+                    document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));
+                    document.dispatchEvent(new CustomEvent('visualmind-dashboard-change'));
+                    render(); overlay.querySelector('[data-close]').focus();
+                };
+                row.append(title, restore, remove); list.appendChild(row);
             });
             if (!list.children.length) list.innerHTML = '<div class="trash-empty"><span>' + window.taskTrashIcon + '</span><h4>Thùng rác trống</h4><p>Công việc đã xóa sẽ xuất hiện ở đây.</p></div>';
         };

@@ -128,6 +128,19 @@ try {
     assert(movedEvent && movedEvent.querySelector('input').checked, 'Move must preserve completion at new date');
     movedEvent.querySelector('[aria-label="Bỏ khỏi ngày này"]').click();
     assert(!document.querySelector(`[data-date="${targetDate}"] [data-calendar-item="recurring"]`) && !readPlanner().recurring[0].trashedAt, 'Calendar x must remove occurrence without trashing series');
-    document.querySelector('#result').textContent = 'PASS: drag identity, both matrix task types, editing fields, shared completion, time validation, trash and restore.';
+    for (const source of ['legacy', 'items', 'recurring']) {
+        const deleted = { id: 'delete-' + source, title: 'Delete me', trashedAt: new Date().toISOString() };
+        if (source === 'legacy') localStorage.setItem('visualmind-eisenhower-tasks', JSON.stringify([deleted]));
+        else { const state = readPlanner(); state[source].push(deleted); localStorage.setItem('visualmind-weekly-planner', JSON.stringify(state)); }
+        window.showTaskTrash();
+        const remove = [...document.querySelectorAll('.trash-row')].find(row => row.textContent.includes('Delete me')).querySelector('.trash-delete');
+        window.confirm = () => false; remove.click();
+        assert(document.contains(remove), 'Cancel preserves trash entry');
+        window.confirm = () => true; remove.click();
+        assert(![...JSON.parse(localStorage.getItem('visualmind-eisenhower-tasks')), ...readPlanner().items, ...readPlanner().recurring].some(item => item.id === deleted.id), 'Permanent deletion persists for ' + source);
+        assert(readPlanner().items.some(item => item.id === 'scheduled'), 'Unrelated active task survives deletion');
+        document.querySelector('.trash-close').click();
+    }
+    document.querySelector('#result').textContent = 'PASS: task editing, calendar, trash restore and permanent deletion from all stores, cancellation and active task preservation.';
 } catch (error) { document.querySelector('#result').textContent = `FAIL: ${error.stack}`; }
 </script>

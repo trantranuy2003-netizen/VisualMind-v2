@@ -94,3 +94,37 @@
 .wheel-axis-row input[type=color] { flex:0 0 40px; width:40px; height:38px; padding:3px; cursor:pointer; }
 .wheel-tree-goal > .wheel-tree-row .planner-button,
 .wheel-tree-goal > .wheel-tree-row .wheel-goal-icon { color:inherit; }
+
+/* Goal details: keep names readable and reserve room for every action. */
+.library-dialog.wheel-tree-dialog { width:min(960px,95vw); max-width:960px; box-sizing:border-box; }
+.wheel-tree-dialog .wheel-tree { overflow:visible; }
+.wheel-tree-dialog .wheel-tree-row { grid-template-columns:minmax(180px,1fr) 86px 110px 100px 108px; min-width:0; gap:16px; padding:14px 16px; line-height:1.5; }
+.wheel-tree-dialog .wheel-tree-columns { font-size:11px; padding-block:12px; }
+.wheel-tree-dialog .radar-muted { padding:12px 16px; border:1px solid var(--ui-border); border-radius:10px; line-height:1.6; }
+.wheel-tree-dialog .wheel-tree-goal { border:1px solid var(--ui-border); border-radius:12px; overflow:hidden; margin:14px 0; }
+.wheel-tree-dialog .wheel-tree-goal > .wheel-tree-row { background:color-mix(in srgb,var(--category-pastel) 12%,var(--ui-surface)); color:var(--ui-text); border-left:3px solid var(--category-pastel); border-radius:0; }
+.wheel-tree-dialog .wheel-tree-task { border-top:1px solid var(--ui-border); border-radius:0; }
+.wheel-tree-dialog .wheel-tree-task input[type=checkbox] { width:16px; height:16px; min-width:16px; flex:0 0 16px; margin:0; padding:0; }
+.wheel-tree-dialog .wheel-tree-name > span:last-child { line-height:1.5; }
+.wheel-tree-dialog .wheel-tree-actions { gap:6px; justify-content:flex-end; }
+.wheel-tree-dialog .wheel-tree-actions button { width:30px; height:30px; padding:0; display:grid; place-items:center; background:transparent; color:var(--ui-text); border:1px solid var(--ui-border); border-radius:8px; }
+.wheel-tree-dialog .wheel-tree-actions button:hover { background:var(--ui-hover); border-color:var(--ui-accent); }
+.wheel-tree-dialog .wheel-tree-name > button { flex:0 0 20px; }
+.wheel-tree-dialog .wheel-task-icon { flex-shrink:0; }
+.trash-delete { flex-shrink:0; padding:7px 10px; border:1px solid color-mix(in srgb,#ef6464 40%,var(--ui-border)); border-radius:7px; background:transparent; color:var(--ui-text); font:inherit; font-size:11px; cursor:pointer; }
+.trash-delete:hover { color:#ef6464; background:color-mix(in srgb,#ef6464 12%,transparent); }
+.eisenhower-matrix .matrix-do { --quadrant:#ef7070; }
+.eisenhower-matrix .matrix-schedule { --quadrant:#649cf4; }
+.eisenhower-matrix .matrix-delegate { --quadrant:#d6a338; }
+.eisenhower-matrix .matrix-eliminate { --quadrant:#ab87e8; }
+.eisenhower-matrix .matrix-cell { border:1px solid color-mix(in srgb,var(--quadrant) 32%,var(--ui-border)); border-top:3px solid var(--quadrant); background:color-mix(in srgb,var(--quadrant) 9%,var(--ui-surface)); }
+.eisenhower-matrix .matrix-label b { color:color-mix(in srgb,var(--quadrant) 75%,var(--ui-text)); }
+.eisenhower-matrix .matrix-label span { color:var(--ui-muted); }
+.eisenhower-matrix .todo-item { background:var(--ui-surface); border-radius:8px; padding:10px; }
+@media(max-width:760px) {
+    .wheel-tree-dialog .wheel-tree-columns { display:none; }
+    .wheel-tree-dialog .wheel-tree-row { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:14px; }
+    .wheel-tree-dialog .wheel-tree-name { grid-column:1 / -1; }
+    .wheel-tree-dialog .wheel-tree-actions { grid-column:1 / -1; }
+    .wheel-tree-dialog .wheel-tree-row > span::before { content:attr(data-label); display:block; font-size:10px; font-weight:400; color:var(--ui-muted); margin-bottom:4px; }
+}
