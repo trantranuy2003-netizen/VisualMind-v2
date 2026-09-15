@@ -44,7 +44,7 @@
     const groups = (state, range) => {
         const result = { unscheduled: [], scheduled: [], recurring: [], previous: [] };
         for (const task of all(state)) {
-            if (task.trashedAt || task.kind === 'goal' || task.matrixStatus) continue;
+            if (task.trashedAt || task.kind === 'goal') continue;
             const dated = task.repeat || task.fromDate || task.dates?.length || task.extraDates?.length;
             if (!dated) { result.unscheduled.push({ task, date: today() }); continue; }
             for (const date of occurrences(task, range.start, range.end)) result[task.repeat ? 'recurring' : 'scheduled'].push({ task, date });

@@ -10,6 +10,17 @@
 .checklist-toolbar { display:flex; gap:12px; flex-wrap:wrap; margin-block:16px; }
 .wheel-field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; color:var(--ui-muted); font-size:13px; }
 .wheel-field[hidden] { display:none; }
+.checklist-schedule { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.checklist-endpoint,.checklist-recurrence { border:0; padding:0; min-width:0; margin:0 0 18px; }
+.checklist-endpoint legend,.checklist-recurrence legend { margin-bottom:10px; color:var(--ui-muted); font-size:13px; }
+.checklist-endpoint-inputs { display:grid; grid-template-columns:82px minmax(0,1fr); gap:8px; }
+.checklist-endpoint-inputs .wheel-field { font-size:0; gap:0; }
+.checklist-endpoint-inputs input { font-size:13px; width:100%; }
+.checklist-recurrence .planner-button { margin:0 5px 5px 0; min-width:38px; }
+.checklist-recurrence .active { background:var(--ui-accent); color:#fff; border-color:var(--ui-accent); }
+.todo-item.is-in-matrix { opacity:.4; }
+.checklist-panel .trash-open.is-drag-over { outline:2px solid var(--ui-accent); background:var(--ui-hover); }
+@media(max-width:540px) { .checklist-schedule { grid-template-columns:1fr; gap:0; } }
 .todo-item[data-checklist-task] { display:flex; flex-wrap:wrap; gap:8px; margin-block:8px; }
 .todo-item[data-checklist-task] > .todo-item-title { flex:1 1 120px; min-width:0; }
 .todo-item[data-checklist-task] > button { flex:0 0 24px; padding:4px; }

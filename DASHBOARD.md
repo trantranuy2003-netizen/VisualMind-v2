@@ -19,6 +19,8 @@ Detached Calendar occurrences count toward their original task's cap and weight.
 
 Weeks run Monday–Sunday. Previous means the immediately preceding day, calendar week, calendar month or calendar year; custom periods use the preceding range of the same number of days. Incomplete recurring occurrences are shown with their occurrence dates. Unscheduled tasks stay visible in every period.
 
+Tasks assigned to Eisenhower remain visible with reduced opacity in Checklist. The matrix × button returns the same task to Checklist. Dropping a task onto the Checklist trash icon moves it to the recoverable trash. Each section has its own add button. Task forms use 24-hour times and explicit dd/mm/yyyy dates, with weekday buttons for weekly recurrence; No disables recurrence. Existing monthly/custom rules are retained until the weekday selection changes.
+
 Legacy Eisenhower records migrate once per ID into planner storage; the original records are backed up under `visualmind-tasks-backup-v1`. Old monthly radar data is retained, and the latest saved monthly goals seed the single wheel. Legacy Week Plan goals migrate into the wheel; their original records are retained under `legacyPlannerGoals`. Migrated goals start at 0% weight because the old model had no equivalent weight. Users must allocate their weights before the target line reaches 10.
 
 The existing dashboard cloud document includes the wheel inside `radar`, so no backend schema change is required. Local changes use existing dashboard save/restore events. Cloud behavior is covered by mock account-isolation and persistence tests; a live authenticated Supabase session is not part of automated validation.

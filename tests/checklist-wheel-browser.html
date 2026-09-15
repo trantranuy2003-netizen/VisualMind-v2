@@ -10,10 +10,15 @@ if(d.querySelectorAll('[data-checklist-group]').length!==4)throw Error('Four sec
 if(d.querySelector('.weekly-panel'))throw Error('Old week plan still visible');
 const input=d.querySelector('.home-search input');if(w.getComputedStyle(input).backgroundColor!=='rgb(255, 255, 255)')throw Error('Light search background incorrect');
 C.commit({items:[{id:'task',title:'User text',kind:'task'}],recurring:[]});
-const row=d.querySelector('[data-checklist-task="task"]'),move=row.querySelector('select');move.value='do';move.dispatchEvent(new w.Event('change'));
-if(d.querySelector('.checklist-panel [data-checklist-task="task"]'))throw Error('Matrix task duplicated in Checklist');
+const drag=(id,target)=>{const data=new w.DataTransfer();data.setData('application/x-checklist-task',JSON.stringify({id,date:C.today()}));target.dispatchEvent(new w.DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:data}));};
+if(d.querySelectorAll('[data-checklist-group] .todo-group-heading button').length!==4)throw Error('Each section needs an add button');
+if(!d.querySelector('[data-checklist-trash] svg'))throw Error('Original trash icon missing');
+drag('task',d.querySelector('[data-task-list="do"]'));
+if(!d.querySelector('.checklist-panel [data-checklist-task="task"]').classList.contains('is-in-matrix'))throw Error('Checklist copy must be faded');
+if(d.querySelector('[data-checklist-task] select'))throw Error('Move dropdown must be removed');
 d.querySelector('.matrix-dropzone input').click();if(!C.all()[0].completed)throw Error('Matrix completion not persisted');
-const back=d.querySelector('.matrix-dropzone select');back.value='';back.dispatchEvent(new w.Event('change'));
+d.querySelector('.matrix-dropzone [data-return-checklist]').click();
+if(d.querySelector('.checklist-panel .is-in-matrix'))throw Error('Return must remove faded state');
 if(!d.querySelector('.checklist-panel input[type=checkbox]').checked)throw Error('Completion lost on returning');
 d.querySelector('.wheel-hit').dispatchEvent(new w.MouseEvent('click'));
 const add=[...d.querySelectorAll('.wheel-dialog button')].find(n=>n.textContent.includes('Add goal'));add.click();
@@ -25,10 +30,18 @@ d.querySelector('[data-language-choice="vi"]').click();await new Promise(r=>setT
 d.querySelectorAll('.library-dialog-overlay').forEach(n=>n.remove());
 d.querySelector('[data-language-choice="vi"]').click();await new Promise(r=>setTimeout(r,50));if(!d.querySelector('[data-wheel]').textContent.includes('Mai rùa'))throw Error('Vietnamese switch failed');
 d.querySelector('[data-language-choice="en"]').click();await new Promise(r=>setTimeout(r,50));if(!d.querySelector('[data-wheel]').textContent.includes('Wheel of Life'))throw Error('English switch failed');
-w.editChecklistTask(C.all().find(t=>t.id==='task'));form=d.querySelector('.wheel-form');form.elements.start.value=C.today();form.dispatchEvent(new w.Event('submit',{cancelable:true}));
+w.editChecklistTask(C.all().find(t=>t.id==='task'));form=d.querySelector('.wheel-form');form.elements.start.value=C.today().split('-').reverse().join('/');form.dispatchEvent(new w.Event('submit',{cancelable:true}));
 const calendarTask=[...d.querySelectorAll('.calendar-event-title')].find(n=>n.textContent==='User text');if(!calendarTask)throw Error('Checklist schedule not synced to Calendar');calendarTask.click();
 form=d.querySelector('.calendar-editor');form.elements.title.value='Edited in Calendar';form.dispatchEvent(new w.Event('submit',{cancelable:true}));
 if(!d.querySelector('[data-checklist-group="scheduled"]').textContent.includes('Edited in Calendar'))throw Error('Calendar edit not synced to Checklist');
+drag('task',d.querySelector('[data-checklist-trash] svg'));
+if(!C.all().find(t=>t.id==='task').trashedAt||d.querySelector('[data-checklist-task="task"]'))throw Error('Drop in trash did not remove task');
+d.querySelector('[data-checklist-trash]').click();d.querySelector('.trash-restore').click();d.querySelector('.trash-close').click();if(C.all().find(t=>t.id==='task').trashedAt)throw Error('Trash restore failed');
+d.querySelector('[data-checklist-group="recurring"] .todo-group-heading button').click();form=d.querySelector('.wheel-form');form.elements.taskName.value='Monday and Tuesday';form.elements.start.value='14/09/2026';form.elements.end.value='15/09/2026';form.elements.fromTime.value='23:00';form.elements.endToTime.value='01:00';
+form.querySelector('[data-repeat-day="none"]').click();form.querySelector('[data-repeat-day="1"]').click();form.querySelector('[data-repeat-day="2"]').click();form.dispatchEvent(new w.Event('submit',{cancelable:true}));
+const repeating=C.all().find(t=>t.title==='Monday and Tuesday');if(!repeating||repeating.durationMinutes!==120||repeating.repeat!=='weekly'||repeating.repeatDays.join(',')!=='1,2')throw Error('Weekday recurrence or overnight duration incorrect');
+if(!w.CalendarModel.occurs(repeating,'2026-09-21')||!w.CalendarModel.occurs(repeating,'2026-09-22')||w.CalendarModel.occurs(repeating,'2026-09-23'))throw Error('Repeat must occur every Monday and Tuesday');
+w.editChecklistTask(repeating);form=d.querySelector('.wheel-form');form.elements.start.value='31/02/2026';form.dispatchEvent(new w.Event('submit',{cancelable:true}));if(!form.querySelector('[role="alert"]').textContent)throw Error('Invalid date accepted');form.elements.start.value='14/09/2026';form.querySelector('[data-repeat-day="none"]').click();form.dispatchEvent(new w.Event('submit',{cancelable:true}));if(C.all().find(t=>t.id===repeating.id).repeat)throw Error('No must disable recurrence');
 document.querySelector('#result').textContent='PASS: light theme, four sections, matrix move/return, completion, goal creation, weighted radar and EN/VN.';
 }catch(error){document.querySelector('#result').textContent='FAIL: '+error.stack;}};
 </script>

@@ -1,4 +1,9 @@
 I18n.register({
+    startTime:['Thời gian bắt đầu','Start time'],endTime:['Thời gian kết thúc','End time'],fromTime:['Giờ bắt đầu','Start time'],endToTime:['Giờ kết thúc','End time'],noRepeat:['Không','No'],
+    dateFormatError:['Nhập ngày hợp lệ theo định dạng dd/mm/yyyy.','Enter a valid date in dd/mm/yyyy format.'],
+    invalidTaskEnd:['Thời gian kết thúc phải sau thời gian bắt đầu. Với việc qua đêm, chọn ngày kết thúc là hôm sau.','End time must follow start time. For overnight tasks, choose the following end date.'],
+    scheduleFieldsError:['Chọn ngày bắt đầu cho việc lặp lại. Nếu nhập giờ, điền đủ giờ và ngày bắt đầu/kết thúc.','Choose a start date for recurring tasks. When entering times, complete both start and end dates and times.'],
+    keepExistingRepeat:['Lịch lặp hiện tại được giữ nguyên cho đến khi bạn chọn lại các thứ hoặc Không.','The existing recurrence is kept until you select weekdays or No.'],
     flashCreated:['✅ Đã tạo {count} flashcard mới. Tổng cộng {total} flashcard.','✅ Created {count} flashcards. {total} flashcards in total.'],
     flashHistory:['📝 Lịch sử trả lời ({count} lần)','📝 Answer history ({count} attempts)'],
     flashStats:['📊 Thống kê flashcard\n\n📄 Tổng số thẻ: {total}\n✍️ Đã trả lời: {attempted}\n📝 Tổng lượt trả lời: {totalAttempts}\n✅ Đúng: {correct}\n📈 Tỷ lệ đúng: {rate}%','📊 Flashcard statistics\n\n📄 Total cards: {total}\n✍️ Answered: {attempted}\n📝 Total attempts: {totalAttempts}\n✅ Correct: {correct}\n📈 Accuracy: {rate}%'],
