@@ -4,6 +4,7 @@
 - `css/tokens.css` defines shared dark/light surfaces, text, borders, orange accent, typography and radius. Dashboard-specific layout lives in `checklist-wheel.css`.
 - `checklist-model.js` owns shared task operations. Checklist, Calendar and Eisenhower use the same planner IDs and completion dates; `matrixStatus` changes presentation only. `checklist.js` owns task editing and period views.
 - `wheel.js` owns one Wheel of Life in `visualmind-radar.wheel`. Goal IDs link task records through `wheelGoalId`. The chart and modal use the shared task state. `dashboard-ui.js` provides form/dialog helpers.
+- `wheel-task-link.js` embeds the shared category/goal editors in the same add/edit task form. New tasks score only with both `wheelCategoryId` and `wheelGoalId` selected. Categories and goals can be archived/restored without deleting tasks or losing their links.
 
 ## Scoring
 
@@ -13,6 +14,8 @@ All stored weights are percentages. An axis score on the 0–10 scale is:
 
 The target is 10 only when goal weights total 100% (tolerance 0.000001); otherwise it is 0. Each task's point contribution per completion is displayed in its goal detail. Goal/task forms reject totals above 100%. SMART fields are optional; name, weight and completion cap are required.
 
+Axis details use an expandable Goal → Task tree with aligned weight, maximum-count and done-count columns. Goal counts aggregate the child tasks; task counts update from the same completions used by Checklist and Calendar. The gear opens axis settings. Adding, renaming and removing axes updates the radar on save. Removed axes are archived with their stable IDs and can be restored with their goals and task links intact. At least three distinct axes are required.
+
 Detached Calendar occurrences count toward their original task's cap and weight. The excluded original date is not counted again. No additional progress bars or monthly wheel controls are rendered.
 
 ## Periods and migration
@@ -20,6 +23,8 @@ Detached Calendar occurrences count toward their original task's cap and weight.
 Weeks run Monday–Sunday. Previous means the immediately preceding day, calendar week, calendar month or calendar year; custom periods use the preceding range of the same number of days. Incomplete recurring occurrences are shown with their occurrence dates. Unscheduled tasks stay visible in every period.
 
 Tasks assigned to Eisenhower remain visible with reduced opacity in Checklist. The matrix × button returns the same task to Checklist. Dropping a task onto the Checklist trash icon moves it to the recoverable trash. Each section has its own add button. Task forms use 24-hour times and explicit dd/mm/yyyy dates, with weekday buttons for weekly recurrence; No disables recurrence. Existing monthly/custom rules are retained until the weekday selection changes.
+
+For `scheduleVersion: 2` recurring tasks, `start`/`fromDate` and `repeatUntil` are optional inclusive series boundaries. Empty means unlimited in that direction. `fromTime`/`endToTime` define each occurrence; missing clock endpoints mean 00:00/24:00 and both missing means all day. Overnight times describe a finite overnight occurrence, never an infinitely long event. `repeatAnchor` gives interval rules a stable phase when the start boundary is absent. Calendar generates only the viewed dates, and whole-series edits preserve open boundaries. Non-recurring tasks without dates remain unscheduled even if they contain clock times. Subtitles show recurrence weekdays, times and date limits explicitly.
 
 Legacy Eisenhower records migrate once per ID into planner storage; the original records are backed up under `visualmind-tasks-backup-v1`. Old monthly radar data is retained, and the latest saved monthly goals seed the single wheel. Legacy Week Plan goals migrate into the wheel; their original records are retained under `legacyPlannerGoals`. Migrated goals start at 0% weight because the old model had no equivalent weight. Users must allocate their weights before the target line reaches 10.
 

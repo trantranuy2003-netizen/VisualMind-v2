@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><pre id="result">RUNNING</pre><script>
+localStorage.setItem('visualmind-weekly-planner',JSON.stringify({items:[],recurring:[]}));localStorage.setItem('visualmind-eisenhower-tasks','[]');localStorage.setItem('visualmind-radar','{}');localStorage.setItem('visualmind-language','en');
+const frame=document.createElement('iframe');frame.src='../index.html?test=1';document.body.append(frame);
+frame.onload=async()=>{try{
+const w=frame.contentWindow,d=frame.contentDocument,C=w.ChecklistModel,W=w.WheelModel,M=w.CalendarModel;
+const assert=(value,message)=>{if(!value)throw Error(message);};
+const form=()=>[...d.querySelectorAll('form.wheel-form')].at(-1);
+const submit=()=>form().requestSubmit();
+w.editChecklistTask();let taskForm=form();taskForm.elements.taskName.value='Open weekly task';
+taskForm.querySelector('[data-ui-key="manageCategories"]').click();form().querySelector('[data-ui-key="addAxis"]').click();form().querySelector('.wheel-axis-row:last-child input').value='Linked category';submit();
+const category=W.load().categories.find(item=>item.name==='Linked category');assert(category,'Create category from task form');
+taskForm.elements.wheelCategoryId.value=category.id;taskForm.elements.wheelCategoryId.dispatchEvent(new w.Event('change'));
+taskForm.querySelector('[data-ui-key="addGoal"]').click();form().elements.goalName.value='Linked goal';form().elements.goalWeight.value='100';submit();
+const goal=W.load().goals.find(item=>item.title==='Linked goal');assert(taskForm.elements.wheelGoalId.value===goal.id,'New goal selected automatically');
+taskForm.elements.cap.value='10';taskForm.elements.pointsPerDone.value='1';taskForm.elements.pointsPerDone.dispatchEvent(new w.Event('input',{bubbles:true}));
+taskForm.querySelector('[data-repeat-day="1"]').click();taskForm.querySelector('[data-repeat-day="2"]').click();submit();
+let task=C.all().find(item=>item.title==='Open weekly task');assert(task&&task.wheelCategoryId===category.id&&task.wheelGoalId===goal.id,'Task linked to both category and goal');
+assert(task.wheelWeight===100&&task.wheelCap===10,'Points per done configure bounded task weight');assert(!task.start&&!task.repeatUntil,'Both date boundaries remain open');
+assert(M.occurs(task,'1900-01-01')&&M.occurs(task,'2026-09-21'),'Calendar supports open past/future');
+C.toggle(task.id,'2026-09-14',true);assert(W.score(W.load(),category.id).actual===1,'One completion adds one point');
+assert(w.taskScheduleSummary(task).includes('Mon, Tue')&&w.taskScheduleSummary(task).includes('No end limit'),'Task subtitle describes recurrence and open bounds');
+w.editChecklistTask(C.all().find(item=>item.id===task.id));taskForm=form();taskForm.elements.end.value='31/12/2026';taskForm.elements.endToTime.value='10:30';submit();
+task=C.all().find(item=>item.id===task.id);assert(task.start===''&&task.repeatUntil==='2026-12-31'&&task.durationMinutes===630,'End boundary is separate from occurrence clock time');
+assert(M.segments([task],'2026-09-15')[0].start===0&&!M.occurs(task,'2027-01-04'),'Missing start clock defaults to midnight; end bound enforced');
+// Exercise the actual Calendar editor, retaining open start when editing a whole series.
+const occurrence='2026-09-15';let state=C.load();const editor=w.setupCalendarEditor(()=>state,()=>C.commit(state));editor.edit(state.recurring.find(item=>item.id===task.id),occurrence);
+let calendar=d.querySelector('.calendar-editor');calendar.elements.scope.value='all';calendar.requestSubmit();calendar=d.querySelector('.calendar-editor');calendar.elements.title.value='Calendar renamed';calendar.requestSubmit();
+task=C.all().find(item=>item.id===task.id);assert(task.start===''&&task.fromDate===''&&task.repeatUntil==='2026-12-31'&&task.fromTime==='','Calendar retains open boundary and omitted clock');
+w.editChecklistTask(task);taskForm=form();taskForm.querySelector('[data-ui-key="editGoal"]').click();form().elements.goalName.value='Renamed goal';submit();assert(taskForm.elements.wheelGoalId.selectedOptions[0].textContent==='Renamed goal','Goal edit synced to task picker');
+taskForm.querySelector('[data-ui-key="manageCategories"]').click();[...form().querySelectorAll('.wheel-axis-row input')].find(input=>input.value==='Linked category').value='Renamed category';submit();assert(taskForm.elements.wheelCategoryId.selectedOptions[0].textContent==='Renamed category','Category edit synced to task picker');
+taskForm.querySelector('[data-ui-key="manageCategories"]').click();[...form().querySelectorAll('.wheel-axis-row')].find(row=>row.querySelector('input').value==='Renamed category').querySelector('button').click();submit();assert(W.score(W.load(),category.id).actual===0&&taskForm.elements.wheelCategoryId.value===category.id,'Archived category stops scoring and keeps restorable link');
+taskForm.querySelector('[data-ui-key="manageCategories"]').click();form().querySelector('[data-ui-key="restoreAxis"]').click();submit();assert(W.score(W.load(),category.id).actual===1,'Category restoration retains score');
+taskForm.querySelector('[data-ui-key="archiveGoal"]').click();assert(!W.load().goals.some(item=>item.id===goal.id)&&W.load().archivedGoals.some(item=>item.id===goal.id),'Archive goal from task form');assert(W.score(W.load(),category.id).actual===0,'Archived goal does not score');
+taskForm.querySelector('[data-ui-key="restoreGoal"]').click();[...d.querySelectorAll('.wheel-dialog')].at(-1).querySelector('[data-ui-key="restoreGoal"]').click();assert(W.score(W.load(),category.id).actual===1,'Restoring goal preserves task links and score');
+taskForm.elements.wheelGoalId.value='';taskForm.elements.wheelGoalId.dispatchEvent(new w.Event('change'));submit();assert(W.score(W.load(),category.id).actual===0,'Category alone does not score');
+w.editChecklistTask();taskForm=form();taskForm.elements.taskName.value='Unscheduled';submit();const unscheduled=C.all().find(item=>item.title==='Unscheduled');assert(unscheduled&&M.segments([unscheduled],C.today()).length===0,'No dates and no recurrence stays out of Calendar');
+assert(!w.testErrors.length,'No browser errors: '+w.testErrors.join('; '));
+document.querySelector('#result').textContent='PASS: task category/goal creation, points, archiving/restoring, optional links, open recurrence bounds, partial clocks, Calendar edits and subtitles.';
+}catch(error){document.querySelector('#result').textContent='FAIL: '+error.stack;}};
+</script>

@@ -36,21 +36,24 @@
                 item.excludedDates = [...new Set([...(item.excludedDates || []), origin])];
                 const copy = { ...item, ...patch, id: newId(), seriesId: item.id, originalDate: origin, dates: [patch.fromDate || origin], completedDates: item.completedDates?.includes(origin) ? [patch.fromDate || origin] : [] };
                 copy.parentId = null; copy.week = M.addDays(copy.fromDate, -((M.day(copy.fromDate).getDay() + 6) % 7));
-                for (const field of ['repeat', 'repeatInterval', 'repeatDays', 'repeatUntil', 'start', 'excludedDates', 'extraDates']) delete copy[field];
+                for (const field of ['repeat', 'repeatInterval', 'repeatDays', 'repeatUntil', 'repeatAnchor', 'start', 'excludedDates', 'extraDates']) delete copy[field];
                 state.items.push(copy);
             } else {
-                const oldStart = item.start || item.fromDate || origin;
+                const oldStart = item.start || item.fromDate || (item.scheduleVersion===2?'':origin);
                 const targetDate = patch.fromDate || origin;
-                if (item.repeat) {
+                if (item.repeat && patch.repeat !== '') {
                     const delta = M.daysBetween(origin, targetDate);
-                    patch.start = M.addDays(oldStart, delta); patch.fromDate = patch.start;
+                    patch.start = oldStart ? M.addDays(oldStart, delta) : ''; patch.fromDate = patch.start;
+                    if(item.repeatAnchor)patch.repeatAnchor=M.addDays(item.repeatAnchor,delta);
                     if (delta) {
+                        if(item.matrixDate)item.matrixDate=M.addDays(item.matrixDate,delta);
                         for (const field of ['excludedDates', 'extraDates', 'completedDates']) if (item[field]) item[field] = item[field].map(date => M.addDays(date, delta));
                         if (item.repeatUntil && !Object.hasOwn(patch, 'repeatUntil')) patch.repeatUntil = M.addDays(item.repeatUntil, delta);
                         if (!patch.repeatDays && item.repeatDays) patch.repeatDays = item.repeatDays.map(day => (day + delta % 7 + 7) % 7);
                     }
                     // Detached edits keep their own dates and details when the series changes.
-                    if (patch.toDate) patch.toDate = M.addDays(patch.start, Math.floor(((M.minutes(patch.fromTime) || 0) + (patch.durationMinutes || 0)) / 1440));
+                    if(item.scheduleVersion===2)patch.toDate='';
+                    else if (patch.toDate) patch.toDate = M.addDays(patch.start, Math.floor(((M.minutes(patch.fromTime) || 0) + (patch.durationMinutes || 0)) / 1440));
                 } else {
                     patch.dates = [...new Set([...(item.dates || []).filter(date => date !== origin), targetDate])];
                     patch.week = M.addDays(targetDate, -((M.day(targetDate).getDay() + 6) % 7));
@@ -73,7 +76,7 @@
         const edit = (item = null, origin, start = 540, length = 60, recurring = false) => {
             const open = mode => {
                 const source = item || {};
-                const initialStart = item ? M.minutes(item.fromTime) : start;
+                const initialStart = item ? M.occurrenceStart(item) : start;
                 const initialLength = item ? M.duration(item) || 60 : length;
                 const form = dialog(item ? t('Sửa lịch', 'Edit schedule') : t('Thêm công việc', 'Add task'), `
                     <label>${t('Tên công việc', 'Task name')}<input name="title" maxlength="160" required></label>
@@ -88,6 +91,10 @@
                     if (to < from || (!f.allDay.checked && (first === null || last === null || duration <= 0))) { error.textContent = t('Thời gian kết thúc phải sau bắt đầu. Với việc qua đêm, chọn ngày kết thúc là ngày hôm sau.', 'End must follow start. For overnight events, choose the next end date.'); return; }
                     if (f.repeatUntil.value && f.repeatUntil.value < from) { error.textContent = t('Ngày kết thúc lặp phải từ ngày bắt đầu trở đi.', 'Repeat end must be on or after start.'); return; }
                     const patch = { title: f.title.value.trim(), fromDate: from, toDate: to, fromTime: first === null ? '' : M.time(first), endToTime: last === null ? '' : M.time(last), durationMinutes: duration };
+                    if(item?.scheduleVersion===2&&!f.allDay.checked){
+                        if(!item.fromTime&&f.fromTime.value===M.time(initialStart||0))patch.fromTime='';
+                        if(!item.endToTime&&f.endToTime.value===M.time((initialStart||0)+initialLength))patch.endToTime='';
+                    }
                     const repeat = item?.repeat && mode === 'one' ? '' : f.repeat.value;
                     if (repeat) Object.assign(patch, { repeat, repeatInterval: Number(f.repeatInterval.value) || 1, repeatDays: [...form.querySelectorAll('[name="repeatDay"]:checked')].map(node => Number(node.value)), repeatUntil: f.repeatUntil.value });
                     else if (!(item?.repeat && mode === 'one')) Object.assign(patch, { repeat: '', repeatInterval: 1, repeatDays: [], repeatUntil: '' });

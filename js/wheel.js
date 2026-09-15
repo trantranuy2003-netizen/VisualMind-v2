@@ -28,16 +28,23 @@
     const save=mutate=>{const data=read(),wheel=load();mutate(wheel);data.wheel=wheel;localStorage.setItem(KEY,JSON.stringify(data));document.dispatchEvent(new CustomEvent('visualmind-dashboard-change'));};
     const categoryName=c=>c.key?t(c.key):c.name;
     const completions=(task,tasks)=>{
-        const records=[task,...tasks.filter(item=>item.seriesId===task.id&&!item.trashedAt)];
+        const records=[task,...tasks.filter(item=>item.seriesId===task.id&&!item.trashedAt&&item.wheelGoalId===task.wheelGoalId&&(!Object.hasOwn(item,'wheelCategoryId')||!Object.hasOwn(task,'wheelCategoryId')||item.wheelCategoryId===task.wheelCategoryId))];
         return records.reduce((sum,item)=>sum+(item.completed?Math.max(1,(item.completedDates||[]).length):new Set((item.completedDates||[]).filter(date=>!item.excludedDates?.includes(date))).size),0);
     };
     const score=(wheel,categoryId,tasks=C.all())=>{
+        if(wheel.categories&&!wheel.categories.some(category=>category.id===categoryId))return {target:0,actual:0,total:0};
         const goals=wheel.goals.filter(goal=>goal.categoryId===categoryId);
         const total=goals.reduce((sum,goal)=>sum+Number(goal.weight||0),0);
-        const actual=10*goals.reduce((sum,goal)=>sum+Number(goal.weight||0)/100*tasks.filter(task=>!task.trashedAt&&!task.seriesId&&task.wheelGoalId===goal.id).reduce((subtotal,task)=>subtotal+Number(task.wheelWeight||0)/100*Math.min(1,completions(task,tasks)/Math.max(1,Number(task.wheelCap)||1)),0),0);
+        const actual=10*goals.reduce((sum,goal)=>sum+Number(goal.weight||0)/100*tasks.filter(task=>!task.trashedAt&&!task.seriesId&&task.wheelGoalId===goal.id&&(!Object.hasOwn(task,'wheelCategoryId')||task.wheelCategoryId===categoryId)).reduce((subtotal,task)=>subtotal+Number(task.wheelWeight||0)/100*Math.min(1,completions(task,tasks)/Math.max(1,Number(task.wheelCap)||1)),0),0);
         return {target:goals.length&&Math.abs(total-100)<1e-6?10:0,actual:Math.max(0,Math.min(10,actual)),total};
     };
-    window.WheelModel={load,save,score,completions};
+    const archiveGoal=id=>save(wheel=>{const goal=wheel.goals.find(item=>item.id===id);if(!goal)return;wheel.archivedGoals=[...(wheel.archivedGoals||[]).filter(item=>item.id!==id),goal];wheel.goals=wheel.goals.filter(item=>item.id!==id);});
+    const restoreGoal=id=>{
+        const wheel=load(),goal=wheel.archivedGoals?.find(item=>item.id===id);if(!goal)return '';
+        if(wheel.goals.filter(item=>item.categoryId===goal.categoryId).reduce((sum,item)=>sum+Number(item.weight||0),0)+Number(goal.weight)>100+1e-8)return t('invalidWeight');
+        save(value=>{value.goals.push(goal);value.archivedGoals=value.archivedGoals.filter(item=>item.id!==id);});return '';
+    };
+    window.WheelModel={load,save,score,completions,categoryName,archiveGoal,restoreGoal};
     window.setupWheel=dashboard=>{
         load();document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));
         const card=el('section','todo-panel wheel-panel');card.dataset.wheel='';dashboard.append(card);
@@ -55,43 +62,67 @@
             };
         });
         const detail=category=>dialog(categoryName(category),(panel)=>{
-            const body=el('div');panel.append(body);const opened=new Set();
+            panel.classList.add('wheel-tree-dialog');
+            const body=el('div','wheel-tree');panel.append(body);const collapsed=new Set();
             const draw=()=>{
-                body.querySelectorAll('details[open]').forEach(node=>opened.add(node.dataset.goalId));
                 body.replaceChildren();const wheel=load(),goals=wheel.goals.filter(goal=>goal.categoryId===category.id);
                 body.append(el('p','radar-muted',t('weightNotice',{value:score(wheel,category.id).total})));
+                const columns=el('div','wheel-tree-row wheel-tree-columns');
+                for(const key of ['goalTask','weight','maximumCount','doneCount','actions'])columns.append(el('span','',t(key)));
+                body.append(columns);
                 if(!goals.length)body.append(el('p','',t('noGoals')));
                 goals.forEach(goal=>{
-                    const tree=el('details','wheel-goal');tree.dataset.goalId=goal.id;tree.open=opened.has(goal.id);tree.ontoggle=()=>{if(!tree.open)opened.delete(goal.id);};
-                    const summary=el('summary','',goal.title+' · '+goal.weight+'%');summary.dataset.userContent='';tree.append(summary);
-                    for(const key of ['S','M','A','R','T'])if(goal.smart?.[key]){const text=el('p','',key+': '+goal.smart[key]);text.dataset.userContent='';tree.append(text);}
-                    tree.append(button('edit',()=>editGoal(category.id,goal,draw)),button('addTask',()=>window.editChecklistTask(null,{wheelGoalId:goal.id,category:categoryName(category)},draw),'+ '+t('addTask')));
-                    const tasks=C.all();tasks.filter(task=>!task.trashedAt&&!task.seriesId&&task.wheelGoalId===goal.id).forEach(task=>{
-                        const row=el('article','wheel-task'), title=el('span','',task.title);title.dataset.userContent='';row.append(title);
-                        row.append(el('small','',`${C.all().length?completions(task,tasks):0} / ${task.wheelCap} · ${task.wheelWeight}%`));
-                        row.append(el('small','',t('taskNotice',{value:(10*task.wheelWeight/100/task.wheelCap).toFixed(2),cap:task.wheelCap})));
-                        row.append(button('edit',()=>window.editChecklistTask(task,{},draw)),button('remove',()=>{C.update(task.id,item=>{item.trashedAt=new Date().toISOString();});draw();},'×'));tree.append(row);
+                    const tasks=C.all(), children=tasks.filter(task=>!task.trashedAt&&!task.seriesId&&task.wheelGoalId===goal.id);
+                    const tree=el('section','wheel-tree-goal');tree.dataset.goalId=goal.id;
+                    const row=el('div','wheel-tree-row'), name=el('div','wheel-tree-name');
+                    const branch=el('div','wheel-tree-children');branch.id='wheel-children-'+goal.id;branch.hidden=collapsed.has(goal.id);
+                    const toggle=button('toggleChildren',()=>{branch.hidden=!branch.hidden;branch.hidden?collapsed.add(goal.id):collapsed.delete(goal.id);toggle.textContent=branch.hidden?'›':'⌄';toggle.dataset.uiTemplate=toggle.textContent;toggle.setAttribute('aria-expanded',String(!branch.hidden));},branch.hidden?'›':'⌄');
+                    toggle.setAttribute('aria-expanded',String(!branch.hidden));toggle.setAttribute('aria-controls',branch.id);
+                    const icon=el('span','wheel-goal-icon');icon.innerHTML=window.goalIcon;icon.setAttribute('role','img');icon.setAttribute('aria-label',t('goal'));
+                    const title=el('span','',goal.title);title.dataset.userContent='';name.append(toggle,icon,title);
+                    const actions=el('div','wheel-tree-actions');actions.append(button('edit',()=>editGoal(category.id,goal,draw),'✎'),button('addTask',()=>window.editChecklistTask(null,{wheelGoalId:goal.id,category:categoryName(category)},draw),'+'),button('archiveGoal',()=>archiveGoal(goal.id),'×'));
+                    row.append(name,el('span','',goal.weight+'%'),el('span','',children.reduce((sum,task)=>sum+Number(task.wheelCap||1),0)),el('span','',children.reduce((sum,task)=>sum+completions(task,tasks),0)),actions);tree.append(row,branch);
+                    for(const key of ['S','M','A','R','T'])if(goal.smart?.[key]){const text=el('p','wheel-smart-note',key+': '+goal.smart[key]);text.dataset.userContent='';branch.append(text);}
+                    children.forEach(task=>{
+                        const taskRow=el('div','wheel-tree-row wheel-tree-task');taskRow.dataset.wheelTask=task.id;
+                        const taskName=el('div','wheel-tree-name');
+                        const date=task.repeat?C.today():(task.fromDate||task.dates?.[0]||C.today());
+                        const check=el('input');check.type='checkbox';check.checked=C.done(task,date);check.setAttribute('aria-label',t('completeTask',{title:task.title}));check.title=t('completion')+' · '+date;
+                        check.disabled=Boolean(task.repeat&&!window.CalendarModel.occurs(task,date));check.onchange=()=>C.toggle(task.id,date,check.checked);
+                        const taskIcon=el('span','wheel-task-icon','▤');taskIcon.setAttribute('role','img');taskIcon.setAttribute('aria-label',t('task'));
+                        const text=el('span','',task.title);text.dataset.userContent='';taskName.append(check,taskIcon,text);
+                        const taskActions=el('div','wheel-tree-actions');taskActions.append(button('edit',()=>window.editChecklistTask(task,{},draw),'✎'),button('remove',()=>C.update(task.id,item=>{item.trashedAt=new Date().toISOString();}),'×'));
+                        const count=el('span','wheel-done-count',completions(task,tasks));count.title=t('taskNotice',{value:(10*task.wheelWeight/100/task.wheelCap).toFixed(2),cap:task.wheelCap});
+                        taskRow.append(taskName,el('span','',task.wheelWeight+'%'),el('span','',task.wheelCap||1),count,taskActions);branch.append(taskRow);
                     });body.append(tree);
                 });
                 body.append(button('addGoal',()=>editGoal(category.id,null,draw),'+ '+t('addGoal')));
+                const archiveError=el('p','task-editor-error');archiveError.setAttribute('role','alert');body.append(archiveError);
+                for(const goal of wheel.archivedGoals||[])if(goal.categoryId===category.id)body.append(button('restoreGoal',()=>{archiveError.textContent=restoreGoal(goal.id);},t('restoreGoal')+': '+goal.title));
             };
-            draw();const refresh=()=>{if(panel.isConnected)draw();else document.removeEventListener('visualmind-dashboard-change',refresh);};document.addEventListener('visualmind-dashboard-change',refresh);
+            draw();const events=['visualmind-dashboard-change','visualmind-dashboard-restored','visualmind-preferences'];const refresh=()=>{if(panel.isConnected)draw();else events.forEach(event=>document.removeEventListener(event,refresh));};events.forEach(event=>document.addEventListener(event,refresh));
         },true);
-        const settings=()=>dialog('categories',(panel,close)=>{
+        const settings=(after=()=>{})=>dialog('categories',(panel,close)=>{
             const form=el('form','wheel-form');panel.append(form);const wheel=load();
-            // Stable IDs keep goal links intact when an axis is renamed.
-            const rows=wheel.categories.map(category=>({category,input:field(form,'categories','text',categoryName(category))}));
-            const extra=field(form,'categoryNames','textarea');
+            const rows=[];const list=el('div','wheel-axis-list');form.append(list);
+            const addRow=category=>{
+                const row=el('div','wheel-axis-row'),input=el('input');input.type='text';input.value=categoryName(category)||'';input.required=true;input.maxLength=80;input.setAttribute('aria-label',t('axisName'));
+                const entry={category,input,row};rows.push(entry);row.append(input,button('removeAxis',()=>{rows.splice(rows.indexOf(entry),1);row.remove();},'×'));list.append(row);return input;
+            };
+            wheel.categories.forEach(addRow);
+            form.append(button('addAxis',()=>addRow({id:crypto.randomUUID(),name:''}).focus(),'+ '+t('addAxis')));
+            for(const category of wheel.archivedCategories||[])form.append(button('restoreAxis',()=>{if(!rows.some(entry=>entry.category.id===category.id))addRow(category);},t('restoreAxis')+': '+categoryName(category)));
+            form.append(el('p','radar-muted',t('axisRemovalNote')));
             const error=el('p','task-editor-error');error.setAttribute('role','alert');form.append(error);
             const submit=button('save',()=>{});submit.type='submit';form.append(submit);
-            form.onsubmit=event=>{event.preventDefault();const categories=rows.filter(({input})=>input.value.trim()).map(({category,input})=>({...category,key:input.value.trim()===categoryName(category)?category.key:undefined,name:input.value.trim()}));
-                extra.value.split('\n').map(x=>x.trim()).filter(Boolean).forEach(name=>categories.push({id:crypto.randomUUID(),name}));
-                if(categories.length<3||new Set(categories.map(categoryName)).size!==categories.length||load().goals.some(goal=>!categories.some(c=>c.id===goal.categoryId))){error.textContent=t('categoryError');return;}
-                save(value=>{value.categories=categories;});close();
+            form.onsubmit=event=>{event.preventDefault();const categories=rows.map(({category,input})=>({...category,key:input.value.trim()===categoryName(category)?category.key:undefined,name:input.value.trim()}));
+                if(categories.length<3||categories.some(c=>!c.name)||new Set(categories.map(c=>categoryName(c).toLocaleLowerCase())).size!==categories.length){error.textContent=t('axisValidation');return;}
+                save(value=>{value.archivedCategories=[...(value.archivedCategories||[]),...value.categories].filter((c,i,all)=>!categories.some(active=>active.id===c.id)&&all.findIndex(other=>other.id===c.id)===i);value.categories=categories;});close();if(typeof after==='function')after();
             };
         });
+        window.WheelUI={editGoal,settings};
         const render=()=>{
-            const wheel=load();card.replaceChildren();const header=el('div','dashboard-panel-heading');header.append(el('h2','',t('wheel')),button('categories',settings));card.append(header);
+            const wheel=load();card.replaceChildren();const header=el('div','dashboard-panel-heading');const gear=button('categories',settings,'⚙');gear.classList.add('wheel-settings');header.append(el('h2','',t('wheel')),gear);card.append(header);
             const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 520 440');svg.setAttribute('role','group');svg.setAttribute('aria-label',t('wheel'));svg.classList.add('wheel-chart');
             const shape=(tag,attrs)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);svg.append(node);return node;};
             const point=(index,value,radius=155)=>{const a=-Math.PI/2+index*2*Math.PI/wheel.categories.length;return [260+Math.cos(a)*radius*value/10,220+Math.sin(a)*radius*value/10];};

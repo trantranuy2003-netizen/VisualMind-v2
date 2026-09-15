@@ -23,7 +23,8 @@
         const initialMinutes=window.CalendarModel.minutes(task.fromTime);
         const finishMinutes=initialMinutes===null?null:initialMinutes+window.CalendarModel.duration(task);
         const first=makeEndpoint('startTime','fromTime','start',task.fromTime || '',initialDate);
-        const last=makeEndpoint('endTime','endToTime','end',finishMinutes===null?'':window.CalendarModel.time(finishMinutes),finishMinutes===null?(task.toDate || initialDate):(initialDate?window.CalendarModel.addDays(initialDate,Math.floor(finishMinutes/1440)):''));
+        const last=makeEndpoint('endTime','endToTime','end',task.scheduleVersion===2?(task.endToTime || ''):finishMinutes===null?'':window.CalendarModel.time(finishMinutes),task.repeat?(task.repeatUntil || ''):task.toDate || '');
+        const scheduleNote=el('p','radar-muted',t('openScheduleNote'));form.append(scheduleNote);
         const recurrence=el('fieldset','checklist-recurrence');recurrence.append(el('legend','',t('recurring')));form.append(recurrence);
         const base=task.start || task.fromDate || C.today();
         const selectedDays=new Set(task.repeat==='daily'?[1,2,3,4,5,6,0]:task.repeat==='weekdays'?[1,2,3,4,5]:task.repeat==='weekly'?(task.repeatDays?.length?task.repeatDays:[window.CalendarModel.day(base).getDay()]):[]);
@@ -37,14 +38,7 @@
         }
         updateDays();
         if(task.repeat==='monthly'||Number(task.repeatInterval)>1)recurrence.append(el('p','radar-muted',t('keepExistingRepeat')));
-        let weight, cap;
-        if (!task.seriesId && (task.wheelGoalId || additions.wheelGoalId)) {
-            weight=field(form,'taskWeight','number',task.wheelWeight ?? 100); weight.required=true; weight.min=0; weight.max=100; weight.step='any';
-            cap=field(form,'cap','number',task.wheelCap || 1); cap.required=true; cap.min=1; cap.max=1000000;
-            const points=field(form,'pointsPerDone','number',10*Number(weight.value)/100/Number(cap.value));points.min=0;points.max=10;points.step='any';points.required=true;
-            weight.oninput=cap.oninput=()=>{points.value=10*Number(weight.value)/100/Math.max(1,Number(cap.value));};
-            points.oninput=()=>{weight.value=Number(points.value)*Math.max(1,Number(cap.value))*10;};
-        }
+        const wheelLink=window.setupWheelTaskLink(form,task);
         const error=el('p','task-editor-error'); error.setAttribute('role','alert'); form.append(error);
         const submit=button('save',()=>{}); submit.type='submit'; submit.classList.add('is-primary'); form.append(submit);
         form.onsubmit=event=>{
@@ -55,25 +49,23 @@
             const repeatDays=[...selectedDays];
             if(fromDate===null || toDate===null){error.textContent=t('dateFormatError');return;}
             const M=window.CalendarModel, startMinutes=M.minutes(fromTime), endMinutes=M.minutes(endTime);
-            if((repeat&&!fromDate)||(toDate&&!fromDate)||((fromTime||endTime)&&(!fromDate||!toDate||startMinutes===null||endMinutes===null))){error.textContent=t('scheduleFieldsError');return;}
-            const duration=fromTime&&endTime ? M.daysBetween(fromDate,toDate)*1440+endMinutes-startMinutes : 0;
-            if((toDate&&toDate<fromDate)||((fromTime||endTime)&&duration<=0)){error.textContent=t('invalidTaskEnd');return;}
+            if((fromTime&&startMinutes===null)||(endTime&&endMinutes===null)){error.textContent=t('invalidField');return;}
+            if(fromDate&&toDate&&toDate<fromDate){error.textContent=t('invalidRange');return;}
+            let duration=0;
+            if(fromTime||endTime){duration=(endMinutes??1440)-(startMinutes??0);if(repeat&&duration<=0)duration+=1440;else if(!repeat&&fromDate&&toDate)duration+=M.daysBetween(fromDate,toDate)*1440;if(duration<=0){error.textContent=t('invalidTaskEnd');return;}}
             const state=C.load(), current=existing ? C.all(state).find(item=>item.id===existing.id) : null;
-            const goalId=task.wheelGoalId || additions.wheelGoalId;
-            if (weight && C.all(state).filter(item=>!item.trashedAt && !item.seriesId && item.wheelGoalId===goalId && item.id!==task.id).reduce((sum,item)=>sum+Number(item.wheelWeight||0),0)+Number(weight.value)>100+1e-8) { error.textContent=t('invalidWeight'); return; }
-            const value={ ...current, ...additions, id:task.id || crypto.randomUUID(), kind:'task', title:title.value.trim(), fromDate, toDate:toDate || fromDate, dates:fromDate?[fromDate]:[], fromTime, endToTime:endTime, toTime:endTime, endFromTime:'', durationMinutes:duration, repeat, start:repeat?fromDate:'', repeatInterval:recurrenceChanged?1:task.repeatInterval || 1, repeatDays, repeatUntil:repeat?task.repeatUntil || '':'', completedDates:current?.completedDates || [] };
+            const linkError=wheelLink.validate();if(linkError){error.textContent=linkError;return;}
+            const value={ ...current, ...additions, ...wheelLink.value(), id:task.id || crypto.randomUUID(), kind:'task', title:title.value.trim(), scheduleVersion:2, fromDate, toDate:repeat?'':toDate, dates:!repeat?(fromDate?[fromDate]:toDate?[toDate]:[]):[], fromTime, endToTime:endTime, toTime:endTime, endFromTime:'', durationMinutes:duration, repeat, start:repeat?fromDate:'', repeatAnchor:task.repeatAnchor || fromDate || '1970-01-05', repeatInterval:recurrenceChanged?1:task.repeatInterval || 1, repeatDays, repeatUntil:repeat?toDate:'', completedDates:current?.completedDates || [] };
             const oldDate=current?.start || current?.fromDate || current?.dates?.[0];
-            if(fromDate) {
+            if(repeat || fromDate || toDate) {
                 value.completed=false;
-                if(oldDate && oldDate!==fromDate) {
+                if(!repeat && oldDate && fromDate && oldDate!==fromDate) {
                     const delta=window.CalendarModel.daysBetween(oldDate,fromDate);
                     for(const key of ['completedDates','excludedDates','extraDates'])if(value[key])value[key]=value[key].map(day=>window.CalendarModel.addDays(day,delta));
                     if(value.matrixDate)value.matrixDate=window.CalendarModel.addDays(value.matrixDate,delta);
-                    if(value.repeatUntil)value.repeatUntil=window.CalendarModel.addDays(value.repeatUntil,delta);
                 }
-                if(current?.completed) value.completedDates=[...new Set([...value.completedDates,fromDate])];
+                if(current?.completed) value.completedDates=[...new Set([...value.completedDates,fromDate || toDate || C.today()])];
             } else { value.completed=Boolean(current?.completed || current?.completedDates?.length);value.completedDates=[];value.excludedDates=[];value.extraDates=[]; }
-            if (weight) Object.assign(value,{wheelWeight:Number(weight.value),wheelCap:Number(cap.value)});
             state.items=state.items.filter(item=>item.id!==value.id); state.recurring=state.recurring.filter(item=>item.id!==value.id);
             (value.repeat?state.recurring:state.items).push(value); C.commit(state); close(); after();
         };
@@ -96,7 +88,9 @@
             const check=el('input'); check.type='checkbox'; check.checked=C.done(task,date); check.setAttribute('aria-label',t('completion')+': '+task.title); check.onchange=()=>C.toggle(task.id,date,check.checked);
             const title=el('span','todo-item-title',task.title); title.dataset.userContent='';
             node.append(check,title);
-            if (task.repeat || task.fromDate || task.dates?.length) node.append(el('small','',[task.fromTime,formatDate(date),task.endToTime?'– '+task.endToTime:''].filter(Boolean).join(' ')));
+            const summary=el('small','task-schedule-summary',window.taskScheduleSummary(task));summary.title=summary.textContent;
+            if(task.repeat)summary.append(el('span','task-occurrence-date',t('occurrenceOn',{date:formatDate(date)})));
+            node.append(summary);
             node.append(button('edit',()=>window.editChecklistTask(task), '✎'));
             if (matrix) {const back=button('toChecklist',()=>C.update(task.id,item=>{item.matrixStatus=null;delete item.matrixDate;}),'×');back.dataset.returnChecklist='';node.append(back);}
             if (!matrix) node.append(button('remove',()=>C.update(task.id,item=>{item.trashedAt=new Date().toISOString();}),'×'));

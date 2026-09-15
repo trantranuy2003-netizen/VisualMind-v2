@@ -5,6 +5,21 @@ const vm = require('node:vm');
 const context = { window: {} };
 vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname, '../js/calendar-model.js'), 'utf8'), context);
 const M = context.window.CalendarModel;
+
+test('unbounded recurring tasks work before and after the anchor without creating infinite events',()=>{
+    const task={scheduleVersion:2,repeat:'weekly',repeatDays:[1,2],start:'',fromDate:'',repeatUntil:'',durationMinutes:0};
+    assert.equal(M.occurs(task,'1900-01-01'),true);
+    assert.equal(M.occurs(task,'2100-01-04'),true);
+    assert.equal(M.occurs(task,'2026-09-16'),false);
+    assert.equal(M.segments([task],'2026-09-14').length,1);
+    task.repeatUntil='2026-09-14';assert.equal(M.occurs(task,'2026-09-15'),false);
+    task.start='2026-09-14';assert.equal(M.occurs(task,'2026-09-07'),false);
+});
+test('missing clock endpoints use the start/end of each day, unscheduled tasks stay out of Calendar',()=>{
+    const task={scheduleVersion:2,repeat:'daily',fromTime:'',endToTime:'10:30',durationMinutes:630};
+    const entry=M.segments([task],'2026-09-15')[0];assert.equal(entry.start,0);assert.equal(entry.end,630);
+    assert.equal(M.segments([{scheduleVersion:2,fromTime:'09:00',durationMinutes:900}],'2026-09-15').length,0);
+});
 test('custom weekly intervals use calendar weeks and selected weekdays', () => {
     const item = { repeat: 'weekly', start: '2026-09-07', repeatInterval: 2, repeatDays: [1, 3, 5], repeatUntil: '2026-09-25' };
     for (const day of ['2026-09-07', '2026-09-09', '2026-09-11', '2026-09-21', '2026-09-25']) assert.equal(M.occurs(item, day), true, day);

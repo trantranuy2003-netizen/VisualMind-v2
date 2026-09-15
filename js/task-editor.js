@@ -40,13 +40,17 @@
             date.title = [start, startTime, (end || endTime) ? '→' : '', end, endTime].filter(Boolean).join(' ');
             meta.appendChild(date);
         }
-        if (task.category) {
-            const category = document.createElement('span'); category.className = 'task-meta-category'; category.title = task.category;
+        const wheel=window.WheelModel?.load();
+        const linkedGoal=[...(wheel?.goals||[]),...(wheel?.archivedGoals||[])].find(goal=>goal.id===task.wheelGoalId);
+        const linkedCategory=[...(wheel?.categories||[]),...(wheel?.archivedCategories||[])].find(category=>category.id===(task.wheelCategoryId||linkedGoal?.categoryId));
+        const categoryName=linkedCategory?window.WheelModel.categoryName(linkedCategory):task.category;
+        if (categoryName) {
+            const category = document.createElement('span'); category.className = 'task-meta-category'; category.title = categoryName;
             category.style.setProperty('--category-color', /^#[0-9a-f]{6}$/i.test(task.categoryColor || '') ? task.categoryColor : '#d3edbd');
-            const name = document.createElement('span'); name.textContent = task.category; category.appendChild(name);
+            const name = document.createElement('span'); name.textContent = categoryName; name.dataset.userContent='';category.appendChild(name);
             if (onChange) {
                 const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×'; remove.setAttribute('aria-label', 'Gỡ danh mục');
-                remove.onclick = event => { event.stopPropagation(); task.category = ''; onChange(); };
+                remove.onclick = event => { event.stopPropagation(); task.category = '';task.wheelCategoryId='';task.wheelGoalId='';task.wheelWeight=0; onChange(); };
                 category.appendChild(remove);
             }
             heading.appendChild(category);

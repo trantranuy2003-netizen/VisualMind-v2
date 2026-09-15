@@ -11,8 +11,9 @@
     const occurs = (item, date) => {
         if (item.trashedAt || item.excludedDates?.includes(date)) return false;
         if (item.extraDates?.includes(date)) return true;
-        const start = item.start || item.fromDate;
-        if (!start || date < start || (item.repeatUntil && date > item.repeatUntil)) return false;
+        const lowerBound = item.start || item.fromDate;
+        const start = lowerBound || item.repeatAnchor || '1970-01-05';
+        if ((lowerBound && date < lowerBound) || (item.repeatUntil && date > item.repeatUntil)) return false;
         // Legacy recurring records used toDate as the end of the series.
         if (!item.repeatUntil && !Object.hasOwn(item, 'durationMinutes') && item.toDate && date > item.toDate) return false;
         const a = day(start), b = day(date), interval = Math.max(1, Number(item.repeatInterval) || 1);
@@ -26,9 +27,10 @@
         if (item.repeat === 'monthly') return ((b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth()) % interval === 0 && b.getDate() === Math.min(a.getDate(), new Date(b.getFullYear(), b.getMonth() + 1, 0).getDate());
         return false;
     };
+    const occurrenceStart = item => minutes(item.fromTime) ?? (item.scheduleVersion===2 && minutes(item.endToTime)!==null ? 0 : null);
     const duration = item => {
         if (Number(item.durationMinutes) > 0) return Number(item.durationMinutes);
-        const start = minutes(item.fromTime), end = minutes(item.endToTime || item.endFromTime || item.toTime);
+        const start = occurrenceStart(item), end = minutes(item.endToTime || item.endFromTime || item.toTime);
         if (start === null) return 0;
         let value = end === null ? 60 : end - start;
         if (!item.repeat && item.fromDate && item.toDate) value += daysBetween(item.fromDate, item.toDate) * 1440;
@@ -38,7 +40,7 @@
         const result = [];
         items.forEach(item => {
             if (item.trashedAt) return;
-            const start = minutes(item.fromTime), length = duration(item);
+            const start = occurrenceStart(item), length = duration(item);
             const startsOn = value => item.repeat ? occurs(item, value) : !item.excludedDates?.includes(value) && (item.extraDates?.includes(value) || (start !== null && item.fromDate ? value === item.fromDate : item.fromDate && item.toDate ? value >= item.fromDate && value <= item.toDate : item.dates?.includes(value)));
             const lookback = start === null ? 0 : Math.ceil(length / 1440);
             for (let back = 0; back <= lookback; back++) {
@@ -70,5 +72,5 @@
         });
         flush(); return entries;
     };
-    window.CalendarModel = { day, key, addDays, daysBetween, minutes, time, occurs, duration, segments, layout };
+    window.CalendarModel = { day, key, addDays, daysBetween, minutes, time, occurs, duration, segments, layout, occurrenceStart };
 })();
