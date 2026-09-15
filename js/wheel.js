@@ -31,11 +31,15 @@
         const records=[task,...tasks.filter(item=>item.seriesId===task.id&&!item.trashedAt&&item.wheelGoalId===task.wheelGoalId&&(!Object.hasOwn(item,'wheelCategoryId')||!Object.hasOwn(task,'wheelCategoryId')||item.wheelCategoryId===task.wheelCategoryId))];
         return records.reduce((sum,item)=>sum+(item.completed?Math.max(1,(item.completedDates||[]).length):new Set((item.completedDates||[]).filter(date=>!item.excludedDates?.includes(date))).size),0);
     };
+    const palette=['#f6d5df','#d4e6fa','#d6eddd','#e5dafa','#f9e5c7','#d1eceb'];
+    const categoryColor=category=>category.color || palette[Math.max(0,load().categories.findIndex(item=>item.id===category.id))%palette.length];
+    const pointsPerDone=task=>Number(task.wheelPoints ?? (10/Math.max(1,Number(task.wheelCap)||1)));
+    const goalScore=(goal,tasks=C.all())=>Math.min(10,tasks.filter(task=>!task.trashedAt&&!task.seriesId&&task.wheelGoalId===goal.id&&(!Object.hasOwn(task,'wheelCategoryId')||task.wheelCategoryId===goal.categoryId)).reduce((sum,task)=>sum+Number(task.wheelWeight||0)/100*pointsPerDone(task)*completions(task,tasks),0));
     const score=(wheel,categoryId,tasks=C.all())=>{
         if(wheel.categories&&!wheel.categories.some(category=>category.id===categoryId))return {target:0,actual:0,total:0};
         const goals=wheel.goals.filter(goal=>goal.categoryId===categoryId);
         const total=goals.reduce((sum,goal)=>sum+Number(goal.weight||0),0);
-        const actual=10*goals.reduce((sum,goal)=>sum+Number(goal.weight||0)/100*tasks.filter(task=>!task.trashedAt&&!task.seriesId&&task.wheelGoalId===goal.id&&(!Object.hasOwn(task,'wheelCategoryId')||task.wheelCategoryId===categoryId)).reduce((subtotal,task)=>subtotal+Number(task.wheelWeight||0)/100*Math.min(1,completions(task,tasks)/Math.max(1,Number(task.wheelCap)||1)),0),0);
+        const actual=goals.reduce((sum,goal)=>sum+Number(goal.weight||0)/100*goalScore(goal,tasks),0);
         return {target:goals.length&&Math.abs(total-100)<1e-6?10:0,actual:Math.max(0,Math.min(10,actual)),total};
     };
     const archiveGoal=id=>save(wheel=>{const goal=wheel.goals.find(item=>item.id===id);if(!goal)return;wheel.archivedGoals=[...(wheel.archivedGoals||[]).filter(item=>item.id!==id),goal];wheel.goals=wheel.goals.filter(item=>item.id!==id);});
@@ -44,7 +48,7 @@
         if(wheel.goals.filter(item=>item.categoryId===goal.categoryId).reduce((sum,item)=>sum+Number(item.weight||0),0)+Number(goal.weight)>100+1e-8)return t('invalidWeight');
         save(value=>{value.goals.push(goal);value.archivedGoals=value.archivedGoals.filter(item=>item.id!==id);});return '';
     };
-    window.WheelModel={load,save,score,completions,categoryName,archiveGoal,restoreGoal};
+    window.WheelModel={load,save,score,goalScore,pointsPerDone,categoryColor,completions,categoryName,archiveGoal,restoreGoal};
     window.setupWheel=dashboard=>{
         load();document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));
         const card=el('section','todo-panel wheel-panel');card.dataset.wheel='';dashboard.append(card);
@@ -52,23 +56,22 @@
             const form=el('form','wheel-form');panel.append(form);
             const title=field(form,'goalName','text',existing?.title||'');title.required=true;title.maxLength=160;
             const weight=field(form,'goalWeight','number',existing?.weight??'');weight.required=true;weight.min=0;weight.max=100;weight.step='any';
-            const smart={};for(const key of ['S','M','A','R','T']) smart[key]=field(form,key,'textarea',existing?.smart?.[key]||'');
             const error=el('p','task-editor-error');error.setAttribute('role','alert');form.append(error);
             const submit=button('save',()=>{});submit.type='submit';form.append(submit);
             form.onsubmit=event=>{event.preventDefault();if(!title.value.trim())return;
                 const total=load().goals.filter(goal=>goal.categoryId===categoryId&&goal.id!==existing?.id).reduce((sum,goal)=>sum+Number(goal.weight),0)+Number(weight.value);
                 if(total>100+1e-8){error.textContent=t('invalidWeight');return;}
-                save(wheel=>{const value={...existing,id:existing?.id||crypto.randomUUID(),categoryId,title:title.value.trim(),weight:Number(weight.value),smart:Object.fromEntries(Object.entries(smart).map(([key,input])=>[key,input.value.trim()]))};wheel.goals=wheel.goals.filter(goal=>goal.id!==value.id);wheel.goals.push(value);});close();after();
+                save(wheel=>{const value={...existing,id:existing?.id||crypto.randomUUID(),categoryId,title:title.value.trim(),weight:Number(weight.value)};wheel.goals=wheel.goals.filter(goal=>goal.id!==value.id);wheel.goals.push(value);});close();after();
             };
         });
         const detail=category=>dialog(categoryName(category),(panel)=>{
-            panel.classList.add('wheel-tree-dialog');
+            panel.classList.add('wheel-tree-dialog');panel.style.setProperty('--category-pastel',categoryColor(category));
             const body=el('div','wheel-tree');panel.append(body);const collapsed=new Set();
             const draw=()=>{
                 body.replaceChildren();const wheel=load(),goals=wheel.goals.filter(goal=>goal.categoryId===category.id);
                 body.append(el('p','radar-muted',t('weightNotice',{value:score(wheel,category.id).total})));
                 const columns=el('div','wheel-tree-row wheel-tree-columns');
-                for(const key of ['goalTask','weight','maximumCount','doneCount','actions'])columns.append(el('span','',t(key)));
+                for(const key of ['goalTask','weight','pointsPerDone','score','actions'])columns.append(el('span','',t(key)));
                 body.append(columns);
                 if(!goals.length)body.append(el('p','',t('noGoals')));
                 goals.forEach(goal=>{
@@ -81,8 +84,7 @@
                     const icon=el('span','wheel-goal-icon');icon.innerHTML=window.goalIcon;icon.setAttribute('role','img');icon.setAttribute('aria-label',t('goal'));
                     const title=el('span','',goal.title);title.dataset.userContent='';name.append(toggle,icon,title);
                     const actions=el('div','wheel-tree-actions');actions.append(button('edit',()=>editGoal(category.id,goal,draw),'✎'),button('addTask',()=>window.editChecklistTask(null,{wheelGoalId:goal.id,category:categoryName(category)},draw),'+'),button('archiveGoal',()=>archiveGoal(goal.id),'×'));
-                    row.append(name,el('span','',goal.weight+'%'),el('span','',children.reduce((sum,task)=>sum+Number(task.wheelCap||1),0)),el('span','',children.reduce((sum,task)=>sum+completions(task,tasks),0)),actions);tree.append(row,branch);
-                    for(const key of ['S','M','A','R','T'])if(goal.smart?.[key]){const text=el('p','wheel-smart-note',key+': '+goal.smart[key]);text.dataset.userContent='';branch.append(text);}
+                    row.append(name,el('span','',goal.weight+'%'),el('span','','—'),el('span','',goalScore(goal,tasks).toFixed(2)+' / 10'),actions);tree.append(row,branch);
                     children.forEach(task=>{
                         const taskRow=el('div','wheel-tree-row wheel-tree-task');taskRow.dataset.wheelTask=task.id;
                         const taskName=el('div','wheel-tree-name');
@@ -92,8 +94,8 @@
                         const taskIcon=el('span','wheel-task-icon','▤');taskIcon.setAttribute('role','img');taskIcon.setAttribute('aria-label',t('task'));
                         const text=el('span','',task.title);text.dataset.userContent='';taskName.append(check,taskIcon,text);
                         const taskActions=el('div','wheel-tree-actions');taskActions.append(button('edit',()=>window.editChecklistTask(task,{},draw),'✎'),button('remove',()=>C.update(task.id,item=>{item.trashedAt=new Date().toISOString();}),'×'));
-                        const count=el('span','wheel-done-count',completions(task,tasks));count.title=t('taskNotice',{value:(10*task.wheelWeight/100/task.wheelCap).toFixed(2),cap:task.wheelCap});
-                        taskRow.append(taskName,el('span','',task.wheelWeight+'%'),el('span','',task.wheelCap||1),count,taskActions);branch.append(taskRow);
+                        const count=el('span','wheel-done-count',completions(task,tasks));count.title=t('taskNotice',{value:(task.wheelWeight/100*pointsPerDone(task)).toFixed(2)});
+                        taskRow.append(taskName,el('span','',task.wheelWeight+'%'),el('span','',pointsPerDone(task).toFixed(2)),count,taskActions);branch.append(taskRow);
                     });body.append(tree);
                 });
                 body.append(button('addGoal',()=>editGoal(category.id,null,draw),'+ '+t('addGoal')));
@@ -131,7 +133,7 @@
             for(const mode of ['target','actual'])shape('polygon',{points:wheel.categories.map((category,i)=>point(i,score(wheel,category.id)[mode]).join(',')).join(' '),class:'wheel-'+mode});
             wheel.categories.forEach((category,index)=>{
                 const p=point(index,10),labelPoint=point(index,10,185),value=score(wheel,category.id);
-                const hit=shape('circle',{cx:p[0],cy:p[1],r:9,class:'wheel-hit',role:'button',tabindex:0,'aria-label':categoryName(category)+` ${value.actual.toFixed(1)} / 10`});hit.onclick=()=>detail(category);hit.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();detail(category);}};
+                const hit=shape('circle',{cx:p[0],cy:p[1],r:9,class:'wheel-hit',role:'button',tabindex:0,'aria-label':categoryName(category)+` ${value.actual.toFixed(1)} / 10`});hit.style.fill=categoryColor(category);hit.onclick=()=>detail(category);hit.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();detail(category);}};
                 const label=shape('text',{x:labelPoint[0],y:labelPoint[1],'text-anchor':'middle',class:'wheel-label'});label.textContent=categoryName(category);label.onclick=()=>detail(category);
             });
             card.append(svg);const legend=el('div','wheel-legend');legend.append(el('span','wheel-target-key',t('target')),el('span','wheel-actual-key',t('actual')));card.append(legend);

@@ -24,7 +24,6 @@
         const finishMinutes=initialMinutes===null?null:initialMinutes+window.CalendarModel.duration(task);
         const first=makeEndpoint('startTime','fromTime','start',task.fromTime || '',initialDate);
         const last=makeEndpoint('endTime','endToTime','end',task.scheduleVersion===2?(task.endToTime || ''):finishMinutes===null?'':window.CalendarModel.time(finishMinutes),task.repeat?(task.repeatUntil || ''):task.toDate || '');
-        const scheduleNote=el('p','radar-muted',t('openScheduleNote'));form.append(scheduleNote);
         const recurrence=el('fieldset','checklist-recurrence');recurrence.append(el('legend','',t('recurring')));form.append(recurrence);
         const base=task.start || task.fromDate || C.today();
         const selectedDays=new Set(task.repeat==='daily'?[1,2,3,4,5,6,0]:task.repeat==='weekdays'?[1,2,3,4,5]:task.repeat==='weekly'?(task.repeatDays?.length?task.repeatDays:[window.CalendarModel.day(base).getDay()]):[]);
@@ -78,9 +77,10 @@
         const trash=el('button','trash-open');trash.type='button';trash.dataset.checklistTrash='';trash.title=t('Thùng rác');trash.setAttribute('aria-label',t('Thùng rác'));trash.innerHTML=window.taskTrashIcon;trash.onclick=()=>window.showTaskTrash();
         header.append(el('h2','',t('checklist')),trash); panel.append(header);
         const toolbar=el('div','checklist-toolbar'); panel.append(toolbar);
-        const view=select(toolbar,'checklist',['today','week','month','year','custom'],'today');
+        const view=select(toolbar,'period',['today','week','month','year','custom'],'today');
         const start=field(toolbar,'start','date',C.today()), end=field(toolbar,'end','date',C.today());
         const error=el('p','task-editor-error'); error.setAttribute('role','alert'); panel.append(error);
+        const rangeLabel=el('p','checklist-range');panel.append(rangeLabel);
         const body=el('div'); panel.append(body);
         const row = (task,date,matrix=false) => {
             const node=el('article','todo-item'); node.dataset.checklistTask=task.id; node.dataset.date=date; node.draggable=true; node.classList.toggle('is-completed',C.done(task,date));
@@ -89,7 +89,9 @@
             const title=el('span','todo-item-title',task.title); title.dataset.userContent='';
             node.append(check,title);
             const summary=el('small','task-schedule-summary',window.taskScheduleSummary(task));summary.title=summary.textContent;
-            if(task.repeat)summary.append(el('span','task-occurrence-date',t('occurrenceOn',{date:formatDate(date)})));
+            const W=window.WheelModel, wheel=W.load(), goal=wheel.goals.find(item=>item.id===task.wheelGoalId);
+            const category=wheel.categories.find(item=>item.id===(task.wheelCategoryId||goal?.categoryId));
+            if(category){const tag=el('span','task-category-tag',W.categoryName(category));tag.dataset.userContent='';tag.style.backgroundColor=W.categoryColor(category);node.append(tag);}
             node.append(summary);
             node.append(button('edit',()=>window.editChecklistTask(task), '✎'));
             if (matrix) {const back=button('toChecklist',()=>C.update(task.id,item=>{item.matrixStatus=null;delete item.matrixDate;}),'×');back.dataset.returnChecklist='';node.append(back);}
@@ -101,7 +103,8 @@
             start.parentElement.hidden=view.value!=='custom'; end.parentElement.hidden=view.value!=='custom';
             if (view.value==='custom' && (!start.value || !end.value || end.value<start.value)) {error.textContent=t('invalidRange');return;} error.textContent='';
             const range=C.period(view.value,view.value==='custom'?start.value:C.today(),end.value), groups=C.groups(C.load(),range);
-            body.replaceChildren(); header.querySelector('h2').textContent=t('checklist');
+            body.replaceChildren(); header.querySelector('h2').textContent=t(view.value);
+            rangeLabel.textContent=t('dateRange',{start:formatDate(range.start),end:formatDate(range.end)});
             for (const key of ['unscheduled','scheduled','recurring','previous']) {
                 const group=el('section','todo-group'); group.dataset.checklistGroup=key;
                 const heading=el('div','todo-group-heading');heading.append(el('h3','',t(key)),button('addTask',()=>{

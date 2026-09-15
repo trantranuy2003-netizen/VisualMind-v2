@@ -36,16 +36,16 @@
     const occurrences = (task, start, end) => {
         const result = [];
         for (let date = start; date <= end; date = M.addDays(date, 1)) {
-            if (M.segments([task], date).some(entry => entry.origin === date)) result.push(date);
+            for (const entry of M.segments([task], date)) if (!result.includes(entry.origin)) result.push(entry.origin);
         }
         return result;
     };
-    const done = (task, date) => task.repeat || task.fromDate || task.dates?.length ? Boolean(task.completed || task.completedDates?.includes(date)) : Boolean(task.completed);
+    const done = (task, date) => task.repeat || task.fromDate || task.toDate || task.dates?.length ? Boolean(task.completed || task.completedDates?.includes(date)) : Boolean(task.completed);
     const groups = (state, range) => {
         const result = { unscheduled: [], scheduled: [], recurring: [], previous: [] };
         for (const task of all(state)) {
             if (task.trashedAt || task.kind === 'goal') continue;
-            const dated = task.repeat || task.fromDate || task.dates?.length || task.extraDates?.length;
+            const dated = task.repeat || task.fromDate || task.toDate || task.dates?.length || task.extraDates?.length;
             if (!dated) { result.unscheduled.push({ task, date: today() }); continue; }
             for (const date of occurrences(task, range.start, range.end)) result[task.repeat ? 'recurring' : 'scheduled'].push({ task, date });
             for (const date of occurrences(task, range.previousStart, range.previousEnd)) if (!done(task, date)) result.previous.push({ task, date });
@@ -54,7 +54,7 @@
     };
     const update = (id, mutate) => { const state = load(), task = all(state).find(item => item.id === id); if (!task) return; mutate(task, state); commit(state); };
     const toggle = (id, date, checked) => update(id, task => {
-        if (task.repeat || task.fromDate || task.dates?.length) { task.completed = false; task.completedDates = (task.completedDates || []).filter(value => value !== date); if (checked) task.completedDates.push(date); }
+        if (task.repeat || task.fromDate || task.toDate || task.dates?.length) { task.completed = false; task.completedDates = (task.completedDates || []).filter(value => value !== date); if (checked) task.completedDates.push(date); }
         else task.completed = checked;
     });
     window.taskScheduleSummary = task => {
@@ -68,7 +68,7 @@
             frequency+=': '+[1,2,3,4,5,6,0].filter(day=>days.includes(day)).map(day=>t(['CN','T2','T3','T4','T5','T6','T7'][day])).join(', ');
         }
         if(Number(task.repeatInterval)>1)frequency+=' '+t('everyIntervals',{count:task.repeatInterval});
-        return [frequency,time,first?t('scheduleFrom',{date:fmt(first)}):t('noStartLimit'),last?t('scheduleUntil',{date:fmt(last)}):t('noEndLimit')].join(' · ');
+        return [frequency,time,first?t('scheduleFrom',{date:fmt(first)}):'',last?t('scheduleUntil',{date:fmt(last)}):''].filter(Boolean).join(' · ');
     };
     window.ChecklistModel = { load, all, commit, migrate, today, period, occurrences, done, groups, update, toggle };
 })();

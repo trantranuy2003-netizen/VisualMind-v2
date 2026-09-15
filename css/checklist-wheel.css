@@ -14,7 +14,7 @@
 .task-link-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
 .task-link-row .wheel-field { flex:1; min-width:150px; }
 .task-link-row .planner-button { margin-top:8px; }
-.task-link-scoring { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.task-link-scoring { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .task-link-scoring[hidden] { display:none; }
 .task-occurrence-date { display:block; margin-top:4px; }
 @media(max-width:540px) { .task-link-scoring { grid-template-columns:1fr; } }
@@ -83,3 +83,11 @@
 .wheel-target-key::before,.wheel-actual-key::before { content:''; display:inline-block; width:24px; margin-right:8px; vertical-align:middle; border-top:2px dashed var(--ui-muted); }
 .wheel-actual-key::before { border-top:2px solid var(--ui-accent); }
 @media(max-width:720px) { .todo-item { flex-wrap:wrap; } .wheel-dialog { padding:16px; } }
+
+.checklist-toolbar > .wheel-field:first-child { font-size:0; gap:0; }
+.checklist-toolbar select { font-size:14px; }
+.checklist-range { font-size:12px; color:var(--ui-muted); margin:0 0 16px; }
+.task-category-tag { font-size:11px; color:#384152; padding:3px 8px; border-radius:12px; max-width:160px; overflow-wrap:anywhere; }
+.wheel-tree-dialog .wheel-tree { font-size:13px; }
+.wheel-tree-dialog .dashboard-panel-heading h3 { font-size:18px; }
+.wheel-tree-dialog .wheel-tree-goal > .wheel-tree-row { background:var(--category-pastel); color:#384152; }

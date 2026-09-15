@@ -2,11 +2,12 @@
 <script>
 localStorage.setItem('visualmind-language','en');localStorage.setItem('visualmind-theme','light');
 localStorage.setItem('visualmind-weekly-planner',JSON.stringify({items:[],recurring:[]}));localStorage.setItem('visualmind-eisenhower-tasks','[]');localStorage.setItem('visualmind-radar','{}');
-const frame=document.createElement('iframe');frame.src='../index.html';frame.style='width:1400px;height:1000px';document.body.append(frame);
+const frame=document.createElement('iframe');frame.src='../index.html?test=1';frame.style='width:1400px;height:1000px';document.body.append(frame);
 frame.onload=async()=>{try{
 const w=frame.contentWindow,d=frame.contentDocument,C=w.ChecklistModel;await new Promise(r=>setTimeout(r,200));
 if(!d.querySelector('[data-wheel]'))throw Error('Wheel missing');
 if(d.querySelectorAll('[data-checklist-group]').length!==4)throw Error('Four sections missing');
+for(const period of ['today','week','month','year']){const picker=d.querySelector('.checklist-toolbar select');picker.value=period;picker.dispatchEvent(new w.Event('change'));const range=C.period(period);if(!d.querySelector('.checklist-range').textContent.includes(range.start.split('-').reverse().join('/'))||!d.querySelector('.checklist-range').textContent.includes(range.end.split('-').reverse().join('/')))throw Error('Missing date range '+period);}d.querySelector('.checklist-toolbar select').value='today';d.querySelector('.checklist-toolbar select').dispatchEvent(new w.Event('change'));
 if(d.querySelector('.weekly-panel'))throw Error('Old week plan still visible');
 const input=d.querySelector('.home-search input');if(w.getComputedStyle(input).backgroundColor!=='rgb(255, 255, 255)')throw Error('Light search background incorrect');
 C.commit({items:[{id:'task',title:'User text',kind:'task'}],recurring:[]});
@@ -24,8 +25,8 @@ d.querySelector('.wheel-hit').dispatchEvent(new w.MouseEvent('click'));
 const add=[...d.querySelectorAll('.wheel-dialog button')].find(n=>n.textContent.includes('Add goal'));add.click();
 let form=d.querySelectorAll('.wheel-form');form=form[form.length-1];form.elements.goalName.value='Goal';form.elements.goalWeight.value='100';form.dispatchEvent(new w.Event('submit',{cancelable:true}));
 if(w.WheelModel.load().goals.length!==1)throw Error('Goal not saved');
-const goal=w.WheelModel.load().goals[0];w.editChecklistTask(null,{wheelGoalId:goal.id});form=d.querySelectorAll('.wheel-form');form=form[form.length-1];form.elements.taskName.value='Linked task';form.elements.taskWeight.value='100';form.elements.cap.value='2';form.dispatchEvent(new w.Event('submit',{cancelable:true}));
-const linked=C.all().find(t=>t.wheelGoalId===goal.id);if(!linked)throw Error('Wheel task not shared');C.toggle(linked.id,C.today(),true);if(w.WheelModel.score(w.WheelModel.load(),goal.categoryId).actual!==5)throw Error('Radar not updated');
+const goal=w.WheelModel.load().goals[0];d.querySelector('.wheel-tree-goal .wheel-tree-actions [data-ui-key="addTask"]').click();form=d.querySelectorAll('.wheel-form');form=form[form.length-1];form.elements.taskName.value='Linked task';form.elements.taskWeight.value='100';form.elements.pointsPerDone.value='5';form.dispatchEvent(new w.Event('submit',{cancelable:true}));
+const linked=C.all().find(t=>t.wheelGoalId===goal.id);if(!d.querySelector('.checklist-panel [data-checklist-task="'+linked.id+'"] .task-category-tag'))throw Error('Wheel creation missing from checklist or category tag');if(!linked)throw Error('Wheel task not shared');C.toggle(linked.id,C.today(),true);if(w.WheelModel.score(w.WheelModel.load(),goal.categoryId).actual!==5)throw Error('Radar not updated');
 d.querySelector('[data-language-choice="vi"]').click();await new Promise(r=>setTimeout(r,50));if([...d.querySelectorAll('.wheel-dialog [data-ui-key="addGoal"]')].some(n=>!n.textContent.includes('Thêm Goal')))throw Error('Open modal label did not switch');
 d.querySelectorAll('.library-dialog-overlay').forEach(n=>n.remove());
 d.querySelector('[data-language-choice="vi"]').click();await new Promise(r=>setTimeout(r,50));if(!d.querySelector('[data-wheel]').textContent.includes('Mai rùa'))throw Error('Vietnamese switch failed');

@@ -12,13 +12,13 @@ const category=W.load().categories.find(item=>item.name==='Linked category');ass
 taskForm.elements.wheelCategoryId.value=category.id;taskForm.elements.wheelCategoryId.dispatchEvent(new w.Event('change'));
 taskForm.querySelector('[data-ui-key="addGoal"]').click();form().elements.goalName.value='Linked goal';form().elements.goalWeight.value='100';submit();
 const goal=W.load().goals.find(item=>item.title==='Linked goal');assert(taskForm.elements.wheelGoalId.value===goal.id,'New goal selected automatically');
-taskForm.elements.cap.value='10';taskForm.elements.pointsPerDone.value='1';taskForm.elements.pointsPerDone.dispatchEvent(new w.Event('input',{bubbles:true}));
+taskForm.elements.pointsPerDone.value='1';taskForm.elements.pointsPerDone.dispatchEvent(new w.Event('input',{bubbles:true}));
 taskForm.querySelector('[data-repeat-day="1"]').click();taskForm.querySelector('[data-repeat-day="2"]').click();submit();
 let task=C.all().find(item=>item.title==='Open weekly task');assert(task&&task.wheelCategoryId===category.id&&task.wheelGoalId===goal.id,'Task linked to both category and goal');
-assert(task.wheelWeight===100&&task.wheelCap===10,'Points per done configure bounded task weight');assert(!task.start&&!task.repeatUntil,'Both date boundaries remain open');
+assert(task.wheelWeight===100&&task.wheelPoints===1,'Points per done persist independently');assert(!task.start&&!task.repeatUntil,'Both date boundaries remain open');
 assert(M.occurs(task,'1900-01-01')&&M.occurs(task,'2026-09-21'),'Calendar supports open past/future');
 C.toggle(task.id,'2026-09-14',true);assert(W.score(W.load(),category.id).actual===1,'One completion adds one point');
-assert(w.taskScheduleSummary(task).includes('Mon, Tue')&&w.taskScheduleSummary(task).includes('No end limit'),'Task subtitle describes recurrence and open bounds');
+assert(w.taskScheduleSummary(task).includes('Mon, Tue')&&!w.taskScheduleSummary(task).includes('No end limit'),'Task subtitle describes recurrence and open bounds');
 w.editChecklistTask(C.all().find(item=>item.id===task.id));taskForm=form();taskForm.elements.end.value='31/12/2026';taskForm.elements.endToTime.value='10:30';submit();
 task=C.all().find(item=>item.id===task.id);assert(task.start===''&&task.repeatUntil==='2026-12-31'&&task.durationMinutes===630,'End boundary is separate from occurrence clock time');
 assert(M.segments([task],'2026-09-15')[0].start===0&&!M.occurs(task,'2027-01-04'),'Missing start clock defaults to midnight; end bound enforced');
