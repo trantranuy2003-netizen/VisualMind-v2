@@ -12,7 +12,7 @@ if(d.querySelector('.weekly-panel'))throw Error('Old week plan still visible');
 const input=d.querySelector('.home-search input');if(w.getComputedStyle(input).backgroundColor!=='rgb(255, 255, 255)')throw Error('Light search background incorrect');
 C.commit({items:[{id:'task',title:'User text',kind:'task'}],recurring:[]});
 const drag=(id,target)=>{const data=new w.DataTransfer();data.setData('application/x-checklist-task',JSON.stringify({id,date:C.today()}));target.dispatchEvent(new w.DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:data}));};
-if(d.querySelectorAll('[data-checklist-group] .todo-group-heading button').length!==4)throw Error('Each section needs an add button');
+if(d.querySelectorAll('[data-checklist-group] .todo-group-heading [data-ui-key="addTask"]').length!==4)throw Error('Each section needs an add button');
 if(!d.querySelector('[data-checklist-trash] svg'))throw Error('Original trash icon missing');
 drag('task',d.querySelector('[data-task-list="do"]'));
 if(!d.querySelector('.checklist-panel [data-checklist-task="task"]').classList.contains('is-in-matrix'))throw Error('Checklist copy must be faded');
@@ -38,7 +38,7 @@ if(!d.querySelector('[data-checklist-group="scheduled"]').textContent.includes('
 drag('task',d.querySelector('[data-checklist-trash] svg'));
 if(!C.all().find(t=>t.id==='task').trashedAt||d.querySelector('[data-checklist-task="task"]'))throw Error('Drop in trash did not remove task');
 d.querySelector('[data-checklist-trash]').click();d.querySelector('.trash-restore').click();d.querySelector('.trash-close').click();if(C.all().find(t=>t.id==='task').trashedAt)throw Error('Trash restore failed');
-d.querySelector('[data-checklist-group="recurring"] .todo-group-heading button').click();form=d.querySelector('.wheel-form');form.elements.taskName.value='Monday and Tuesday';form.elements.start.value='14/09/2026';form.elements.end.value='';form.elements.fromTime.value='23:00';form.elements.endToTime.value='01:00';
+d.querySelector('[data-checklist-group="recurring"] .todo-group-heading [data-ui-key="addTask"]').click();form=d.querySelector('.wheel-form');form.elements.taskName.value='Monday and Tuesday';form.elements.start.value='14/09/2026';form.elements.end.value='';form.elements.fromTime.value='23:00';form.elements.endToTime.value='01:00';
 form.querySelector('[data-repeat-day="none"]').click();form.querySelector('[data-repeat-day="1"]').click();form.querySelector('[data-repeat-day="2"]').click();form.dispatchEvent(new w.Event('submit',{cancelable:true}));
 const repeating=C.all().find(t=>t.title==='Monday and Tuesday');if(!repeating||repeating.durationMinutes!==120||repeating.repeat!=='weekly'||repeating.repeatDays.join(',')!=='1,2')throw Error('Weekday recurrence or overnight duration incorrect');
 if(!w.CalendarModel.occurs(repeating,'2026-09-21')||!w.CalendarModel.occurs(repeating,'2026-09-22')||w.CalendarModel.occurs(repeating,'2026-09-23'))throw Error('Repeat must occur every Monday and Tuesday');

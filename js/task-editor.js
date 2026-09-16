@@ -50,7 +50,7 @@
             category.style.setProperty('--category-color',background);if(window.WheelModel)category.style.color=window.WheelModel.textColor(background);
             const name = document.createElement('span'); name.textContent = categoryName; name.dataset.userContent='';category.appendChild(name);
             if (onChange) {
-                const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×'; remove.setAttribute('aria-label', 'Gỡ danh mục');
+                const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '🗑'; remove.setAttribute('aria-label', 'Gỡ danh mục');
                 remove.onclick = event => { event.stopPropagation(); task.category = '';task.wheelCategoryId='';task.wheelGoalId='';task.wheelWeight=0; onChange(); };
                 category.appendChild(remove);
             }
@@ -97,7 +97,7 @@
                         select.value = String(part === 'hours' ? hour : minute);
                         select.onchange = () => { if (part === 'hours') hour = Number(select.value); else minute = Number(select.value); commit(); };
                         const adjust = delta => { select.value = String((Number(select.value) + delta + limit) % limit); select.onchange(); };
-                        column.append(button('▴', 'Tăng ' + label.toLowerCase(), () => adjust(1)), select, button('▾', 'Giảm ' + label.toLowerCase(), () => adjust(-1)));
+                        column.append(button('▴', 'Tăng ' + label.toLowerCase(), () => adjust(1)), select, button('▼', 'Giảm ' + label.toLowerCase(), () => adjust(-1)));
                     }
                     panel.appendChild(button('Xong', 'Xác nhận giờ', () => { commit(); close(true); }));
                 } else {
@@ -135,7 +135,7 @@
     window.showTaskTrash = () => {
         const overlay = document.createElement('div');
         overlay.className = 'library-dialog-overlay';
-        overlay.innerHTML = `<section class="library-dialog task-editor trash-dialog" role="dialog" aria-modal="true" aria-label="Thùng rác"><header class="trash-heading"><span class="trash-heading-icon">${window.taskTrashIcon}</span><div><h3>Thùng rác</h3><p>Khôi phục công việc khi bạn cần.</p></div><button type="button" class="trash-close" data-close aria-label="Đóng thùng rác">×</button></header><div class="trash-list" data-trash-list></div></section>`;
+        overlay.innerHTML = `<section class="library-dialog task-editor trash-dialog" role="dialog" aria-modal="true" aria-label="Thùng rác"><header class="trash-heading"><span class="trash-heading-icon">${window.taskTrashIcon}</span><div><h3>Thùng rác</h3><p>Khôi phục công việc khi bạn cần.</p></div><button type="button" class="trash-close" data-close aria-label="Đóng thùng rác">🗑</button></header><div class="trash-list" data-trash-list></div></section>`;
         const previous = document.activeElement;
         const close = () => { overlay.remove(); previous?.focus(); };
         const render = () => {
@@ -198,7 +198,7 @@
             <label><span data-dashboard-i18n="taskName">Tên công việc</span><input name="title" maxlength="160" required></label>
             <label><span data-dashboard-i18n="priority">Mức ưu tiên</span><select name="flag"><option value="">⚐ Không gắn cờ</option><option value="red">🚩 Cao</option><option value="orange">⚑ Trung bình</option><option value="blue">⚑ Thấp</option></select></label>
             <label>Loại<select name="kind"><option value="task" data-dashboard-i18n="task">Công việc</option><option value="goal" data-dashboard-i18n="goal">Mục tiêu</option></select></label>
-            <label data-dashboard-i18n="categories">Danh mục</label><div class="category-editor"><div class="category-pill-input"><input name="category" maxlength="80" placeholder="Chọn hoặc nhập danh mục mới" aria-label="Danh mục"><button type="button" data-category-menu aria-label="Chọn danh mục" aria-expanded="false">▾</button><button type="button" data-clear-category aria-label="Gỡ danh mục">×</button></div><input type="color" name="categoryColor" value="#d3edbd" aria-label="Màu danh mục"><button type="button" data-new-category>+ Thêm mới</button></div><div class="category-options" hidden></div>
+            <label data-dashboard-i18n="categories">Danh mục</label><div class="category-editor"><div class="category-pill-input"><input name="category" maxlength="80" placeholder="Chọn hoặc nhập danh mục mới" aria-label="Danh mục"><button type="button" data-category-menu aria-label="Chọn danh mục" aria-expanded="false">▼</button><button type="button" data-clear-category aria-label="Gỡ danh mục">🗑</button></div><input type="color" name="categoryColor" value="#d3edbd" aria-label="Màu danh mục"><button type="button" data-new-category>+ Thêm mới</button></div><div class="category-options" hidden></div>
             <fieldset><legend>Bắt đầu</legend><div class="task-time-fields"><label>Giờ<input type="text" name="fromTime" placeholder="hh:mm"></label><label>Ngày<input type="text" name="fromDate" placeholder="mm/dd/yyyy" maxlength="10" inputmode="numeric" aria-label="Ngày bắt đầu, mm/dd/yyyy"></label></div></fieldset>
             <fieldset><legend>Kết thúc</legend><div class="task-time-fields"><label>Giờ<input type="text" name="endToTime" placeholder="hh:mm"></label><label>Ngày<input type="text" name="toDate" placeholder="mm/dd/yyyy" maxlength="10" inputmode="numeric" aria-label="Ngày kết thúc, mm/dd/yyyy"></label></div></fieldset>
             <p class="task-editor-error" role="alert"></p>

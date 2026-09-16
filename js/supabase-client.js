@@ -247,7 +247,7 @@ function updateAuthUI(user) {
     const name = user.user_metadata?.full_name || user.email || 'Tài khoản';
     const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
     button.classList.add('is-authenticated');
-    button.innerHTML = `${avatar ? `<img src="${avatar}" alt="">` : '<span aria-hidden="true">●</span>'}<span>${name}</span><span aria-hidden="true">⌄</span>`;
+    button.innerHTML = `${avatar ? `<img src="${avatar}" alt="">` : '<span aria-hidden="true">●</span>'}<span>${name}</span><span aria-hidden="true">▼</span>`;
     button.onclick = () => button.classList.toggle('is-open');
     if (!button.querySelector('.auth-menu')) {
         const menu = document.createElement('span');

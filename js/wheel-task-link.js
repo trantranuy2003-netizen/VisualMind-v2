@@ -15,7 +15,7 @@
             window.WheelUI.editGoal(category.value,null,()=>{goalId=W.load().goals.find(item=>!before.has(item.id))?.id || goalId;refresh();});
         },'+');
         const edit=button('editGoal',()=>{const current=W.load().goals.find(item=>item.id===goal.value);if(current)window.WheelUI.editGoal(current.categoryId,current,refresh);},'✎');
-        const remove=button('archiveGoal',()=>W.archiveGoal(goal.value),'×');
+        const remove=button('archiveGoal',()=>W.archiveGoal(goal.value),'🗑');
         const restore=button('restoreGoal',()=>window.DashboardUI.dialog('restoreGoal',(panel,close)=>{
             const error=el('p','task-editor-error');error.setAttribute('role','alert');panel.append(error);
             for(const archived of W.load().archivedGoals||[])if(archived.categoryId===category.value)panel.append(button('restoreGoal',()=>{const message=W.restoreGoal(archived.id);if(message)error.textContent=message;else{goalId=archived.id;refresh();close();}},archived.title));

@@ -81,7 +81,10 @@
         const start=field(toolbar,'start','date',C.today()), end=field(toolbar,'end','date',C.today());
         const error=el('p','task-editor-error'); error.setAttribute('role','alert'); panel.append(error);
         const rangeLabel=el('p','checklist-range');panel.append(rangeLabel);
-        const body=el('div'); panel.append(body);
+        toolbar.append(rangeLabel);
+        let collapsed;
+        try { collapsed = new Set(JSON.parse(localStorage.getItem('visualmind-checklist-collapsed') || '[]')); } catch { collapsed = new Set(); }
+        const body=el('div','checklist-sections'); panel.append(body);
         const row = (task,date,matrix=false) => {
             const node=el('article','todo-item'); node.dataset.checklistTask=task.id; node.dataset.date=date; node.draggable=true; node.classList.toggle('is-completed',C.done(task,date));
             node.classList.toggle('is-in-matrix',!matrix&&Boolean(task.matrixStatus));
@@ -94,8 +97,8 @@
             if(category){const tag=el('span','task-category-tag',W.categoryName(category));tag.dataset.userContent='';tag.style.backgroundColor=W.categoryColor(category);tag.style.color=W.textColor(W.categoryColor(category));node.append(tag);}
             node.append(summary);
             node.append(button('edit',()=>window.editChecklistTask(task), '✎'));
-            if (matrix) {const back=button('toChecklist',()=>C.update(task.id,item=>{item.matrixStatus=null;delete item.matrixDate;}),'×');back.dataset.returnChecklist='';node.append(back);}
-            if (!matrix) node.append(button('remove',()=>C.update(task.id,item=>{item.trashedAt=new Date().toISOString();}),'×'));
+            if (matrix) {const back=button('toChecklist',()=>C.update(task.id,item=>{item.matrixStatus=null;delete item.matrixDate;}),'🗑');back.dataset.returnChecklist='';node.append(back);}
+            if (!matrix) node.append(button('remove',()=>C.update(task.id,item=>{item.trashedAt=new Date().toISOString();}),'🗑'));
             node.ondragstart=event=>{event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('application/x-checklist-task',JSON.stringify({id:task.id,date}));};
             return node;
         };
@@ -103,18 +106,27 @@
             start.parentElement.hidden=view.value!=='custom'; end.parentElement.hidden=view.value!=='custom';
             if (view.value==='custom' && (!start.value || !end.value || end.value<start.value)) {error.textContent=t('invalidRange');return;} error.textContent='';
             const range=C.period(view.value,view.value==='custom'?start.value:C.today(),end.value), groups=C.groups(C.load(),range);
-            body.replaceChildren(); header.querySelector('h2').textContent=t(view.value);
+            body.replaceChildren(); header.querySelector('h2').textContent=t('checklist');
             rangeLabel.textContent=range.start===range.end?formatDate(range.start):t('dateRange',{start:formatDate(range.start),end:formatDate(range.end)});
             for (const key of ['unscheduled','scheduled','recurring','previous']) {
                 const group=el('section','todo-group'); group.dataset.checklistGroup=key;
-                const heading=el('div','todo-group-heading');heading.append(el('h3','',t(key)),button('addTask',()=>{
+                const heading=el('div','todo-group-heading');
+                const content=el('div','checklist-section-content'); content.id='checklist-section-'+key; content.hidden=collapsed.has(key);
+                const toggle=button(key,()=>{
+                    content.hidden=!content.hidden;
+                    if(content.hidden)collapsed.add(key);else collapsed.delete(key);
+                    toggle.setAttribute('aria-expanded',String(!content.hidden));
+                    try { localStorage.setItem('visualmind-checklist-collapsed',JSON.stringify([...collapsed])); } catch {}
+                });
+                toggle.classList.add('checklist-section-toggle'); toggle.setAttribute('aria-controls',content.id); toggle.setAttribute('aria-expanded',String(!content.hidden));
+                heading.append(toggle,button('addTask',()=>{
                     const date=key==='previous'?range.previousEnd:range.start;
                     const defaults=key==='unscheduled'?{}:{fromDate:date,toDate:date};
                     if(key==='recurring')Object.assign(defaults,{repeat:'weekly',start:date,repeatDays:[window.CalendarModel.day(date).getDay()]});
                     window.editChecklistTask(null,defaults);
-                },'+'));group.append(heading);
-                if (!groups[key].length) group.append(el('p','radar-muted',t('empty')));
-                groups[key].forEach(({task,date})=>group.append(row(task,date))); body.append(group);
+                },'+'));group.append(heading,content);
+                if (!groups[key].length) content.append(el('p','radar-muted',t('empty')));
+                groups[key].forEach(({task,date})=>content.append(row(task,date))); body.append(group);
             }
             dashboard.querySelectorAll('.matrix-dropzone').forEach(zone=>{
                 zone.replaceChildren(); C.all().filter(task=>!task.trashedAt && task.kind!=='goal' && task.matrixStatus===zone.dataset.taskList).forEach(task=>zone.append(row(task,task.matrixDate || C.today(),true)));

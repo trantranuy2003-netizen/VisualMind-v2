@@ -87,11 +87,11 @@
                     const tree=el('section','wheel-tree-goal');tree.dataset.goalId=goal.id;
                     const row=el('div','wheel-tree-row'), name=el('div','wheel-tree-name');
                     const branch=el('div','wheel-tree-children');branch.id='wheel-children-'+goal.id;branch.hidden=collapsed.has(goal.id);
-                    const toggle=button('toggleChildren',()=>{branch.hidden=!branch.hidden;branch.hidden?collapsed.add(goal.id):collapsed.delete(goal.id);toggle.textContent=branch.hidden?'›':'⌄';toggle.dataset.uiTemplate=toggle.textContent;toggle.setAttribute('aria-expanded',String(!branch.hidden));},branch.hidden?'›':'⌄');
+                    const toggle=button('toggleChildren',()=>{branch.hidden=!branch.hidden;branch.hidden?collapsed.add(goal.id):collapsed.delete(goal.id);toggle.textContent=branch.hidden?'›':'▼';toggle.dataset.uiTemplate=toggle.textContent;toggle.setAttribute('aria-expanded',String(!branch.hidden));},branch.hidden?'›':'▼');
                     toggle.setAttribute('aria-expanded',String(!branch.hidden));toggle.setAttribute('aria-controls',branch.id);
                     const icon=el('span','wheel-goal-icon');icon.innerHTML=window.goalIcon;icon.setAttribute('role','img');icon.setAttribute('aria-label',t('goal'));
                     const title=el('span','',goal.title);title.dataset.userContent='';name.append(toggle,icon,title);
-                    const actions=el('div','wheel-tree-actions');actions.append(button('edit',()=>editGoal(category.id,goal,draw),'✎'),button('addTask',()=>window.editChecklistTask(null,{wheelGoalId:goal.id,category:categoryName(category)},draw),'+'),button('archiveGoal',()=>archiveGoal(goal.id),'×'));
+                    const actions=el('div','wheel-tree-actions');actions.append(button('edit',()=>editGoal(category.id,goal,draw),'✎'),button('addTask',()=>window.editChecklistTask(null,{wheelGoalId:goal.id,category:categoryName(category)},draw),'+'),button('archiveGoal',()=>archiveGoal(goal.id),'🗑'));
                     row.append(name,el('span','',goal.weight+'%'),el('span','','—'),el('span','',goalScore(goal,tasks).toFixed(2)+' / 10'),actions);tree.append(row,branch);
                     children.forEach(task=>{
                         const taskRow=el('div','wheel-tree-row wheel-tree-task');taskRow.dataset.wheelTask=task.id;
@@ -101,7 +101,7 @@
                         check.disabled=Boolean(task.repeat&&!window.CalendarModel.occurs(task,date));check.onchange=()=>C.toggle(task.id,date,check.checked);
                         const taskIcon=el('span','wheel-task-icon','▤');taskIcon.setAttribute('role','img');taskIcon.setAttribute('aria-label',t('task'));
                         const text=el('span','',task.title);text.dataset.userContent='';taskName.append(check,taskIcon,text);
-                        const taskActions=el('div','wheel-tree-actions');taskActions.append(button('edit',()=>window.editChecklistTask(task,{},draw),'✎'),button('remove',()=>C.update(task.id,item=>{item.trashedAt=new Date().toISOString();}),'×'));
+                        const taskActions=el('div','wheel-tree-actions');taskActions.append(button('edit',()=>window.editChecklistTask(task,{},draw),'✎'),button('remove',()=>C.update(task.id,item=>{item.trashedAt=new Date().toISOString();}),'🗑'));
                         const count=el('span','wheel-done-count',completions(task,tasks));count.title=t('taskNotice',{value:(task.wheelWeight/100*pointsPerDone(task)).toFixed(2)});
                         taskRow.append(taskName,el('span','',task.wheelWeight+'%'),el('span','',pointsPerDone(task).toFixed(2)),count,taskActions);branch.append(taskRow);
                     });body.append(tree);
@@ -122,7 +122,7 @@
                 const row=el('div','wheel-axis-row'),input=el('input');input.type='text';input.value=categoryName(category)||'';input.required=true;input.maxLength=80;input.setAttribute('aria-label',t('axisName'));
                 const color=el('input');color.type='color';color.value=categoryColor(category);color.setAttribute('aria-label',t('Màu danh mục'));
                 const preview=()=>{input.style.backgroundColor=color.value;input.style.color=textColor(color.value);};color.oninput=preview;preview();
-                const entry={category,input,color,row};rows.push(entry);row.append(input,color,button('removeAxis',()=>{rows.splice(rows.indexOf(entry),1);row.remove();},'×'));list.append(row);return input;
+                const entry={category,input,color,row};rows.push(entry);row.append(input,color,button('removeAxis',()=>{rows.splice(rows.indexOf(entry),1);row.remove();},'🗑'));list.append(row);return input;
             };
             wheel.categories.forEach(addRow);
             form.append(button('addAxis',()=>addRow({id:crypto.randomUUID(),name:''}).focus(),'+ '+t('addAxis')));

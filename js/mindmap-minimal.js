@@ -16,6 +16,22 @@
         button.innerHTML = `<svg data-mm-icon viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]}"/></svg>`;
     };
     window.addEventListener('DOMContentLoaded', () => {
+        const colors = document.createElement('div');
+        colors.className = 'mm-selection-colors';
+        colors.hidden = true;
+        colors.innerHTML = `<span data-count></span><label>Màu nền <input type="color" aria-label="Màu nền các node đã chọn"></label><span>Màu chữ</span>${[['#EF4444', 'Đỏ'], ['#1E3A8A', 'Xanh dương đậm'], ['#000000', 'Đen'], ['#FFFFFF', 'Trắng']].map(([color, label]) => `<button type="button" data-text-color="${color}" style="background:${color}" title="${label}" aria-label="${label}"></button>`).join('')}`;
+        document.querySelector('#canvasArea').appendChild(colors);
+        window.updateMindmapSelectionColors = () => {
+            colors.hidden = selection.selectedIds.length < 2;
+            colors.querySelector('[data-count]').textContent = `${selection.selectedIds.length} node`;
+        };
+        colors.querySelector('input').addEventListener('change', event => {
+            updateNodeProperty(selection.selectedIds[0], 'color', event.target.value);
+        });
+        colors.addEventListener('click', event => {
+            const button = event.target.closest('[data-text-color]');
+            if (button) updateNodeProperty(selection.selectedIds[0], 'textColor', button.dataset.textColor);
+        });
         const tools = document.querySelector('.mm-tools'), input = tools.querySelector('input');
         const search = MM.button('Tìm kiếm', 'Search', () => { input.hidden = !input.hidden; search.setAttribute('aria-expanded', String(!input.hidden)); if (!input.hidden) input.focus(); });
         input.hidden = true; search.setAttribute('aria-expanded', 'false'); tools.prepend(search);

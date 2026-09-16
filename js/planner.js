@@ -81,7 +81,7 @@
             const overlay = el('div', 'library-dialog-overlay calendar-board-overlay');
             const panel = el('section', 'calendar-board'); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', 'Lịch dạng bảng');
             const close = () => { marker.replaceWith(calendar); overlay.remove(); expand.disabled = false; renderCalendar(); previous?.focus(); };
-            const closeButton = button('×', close, 'Đóng lịch mở rộng');
+            const closeButton = button('🗑', close, 'Đóng lịch mở rộng');
             expand.disabled = true;
             panel.append(closeButton, calendar); overlay.appendChild(panel); document.body.appendChild(overlay);
             overlay.onclick = event => { if (event.target === overlay) close(); };
@@ -249,7 +249,7 @@
                     row.appendChild(button('🖊', () => item.repeat ? calendarEditor.edit(item, occurrenceDate) : window.editDashboardTask(item, save), 'Sửa công việc'));
                     row.appendChild(button('🗑', () => { item.trashedAt = new Date().toISOString(); save(); }, 'Chuyển vào thùng rác'));
                     if (list.classList.contains('matrix-dropzone')) {
-                        row.appendChild(button('×', () => { item.matrixStatus = null; save(); }, 'Bỏ khỏi ma trận'));
+                        row.appendChild(button('🗑', () => { item.matrixStatus = null; save(); }, 'Bỏ khỏi ma trận'));
                     }
                     list.appendChild(row);
                 });
@@ -423,6 +423,15 @@
                     const item = entry.item;
                     const occurrenceDate = entry.origin;
                     const eventRow = el('div', 'calendar-event'); eventRow.dataset.calendarItem = item.id; eventRow.draggable = true;
+                    const W = window.WheelModel, wheel = W?.load();
+                    const goal = [...(wheel?.goals || []), ...(wheel?.archivedGoals || [])].find(goal => goal.id === item.wheelGoalId);
+                    const category = [...(wheel?.categories || []), ...(wheel?.archivedCategories || [])].find(category => category.id === (item.wheelCategoryId || goal?.categoryId));
+                    const categoryColor = category ? W.categoryColor(category) : item.categoryColor;
+                    if (/^#[0-9a-f]{6}$/i.test(categoryColor || '')) {
+                        eventRow.style.backgroundColor = categoryColor;
+                        eventRow.style.borderColor = categoryColor;
+                        eventRow.style.color = W ? W.textColor(categoryColor) : '#000000';
+                    }
                     eventRow.addEventListener('dragstart', event => { event.stopPropagation(); event.dataTransfer.setData('application/x-hodi-calendar', JSON.stringify({ id: item.id, date: occurrenceDate, offset: isWeek && entry.start !== null && event.clientY ? (event.clientY - eventRow.getBoundingClientRect().top) / hourHeight * 60 : 0 })); event.dataTransfer.effectAllowed = 'move'; });
                     eventRow.addEventListener('click', event => event.stopPropagation());
                     const checkLabel = el('label', 'todo-check');
@@ -432,7 +441,7 @@
                     checkLabel.append(check, box); eventRow.classList.toggle('is-completed', check.checked);
                     check.onchange = () => { item.completedDates = (item.completedDates || []).filter(date => date !== occurrenceDate); if (check.checked) item.completedDates.push(occurrenceDate); save(); };
                     const title = button(item.title, () => calendarEditor.edit(item, occurrenceDate), window.I18n.t('editNamedTask', {title:item.title})); title.className = 'calendar-event-title';
-                    const remove = button('×', () => { item.excludedDates = [...new Set([...(item.excludedDates || []), occurrenceDate])]; save(); }, 'Bỏ khỏi ngày này'); remove.className = 'calendar-event-remove';
+                    const remove = button('🗑', () => { item.excludedDates = [...new Set([...(item.excludedDates || []), occurrenceDate])]; save(); }, 'Bỏ khỏi ngày này'); remove.className = 'calendar-event-remove';
                     eventRow.append(checkLabel, title, remove);
                     if (item.fromTime || item.endToTime) eventRow.appendChild(el('span', 'calendar-event-time', [item.fromTime, item.endToTime].filter(Boolean).join('–')));
                     if (isWeek) {
@@ -537,7 +546,7 @@
             const heading = el('div', 'dashboard-panel-heading');
             const dayTitle = el('h3'); heading.appendChild(dayTitle);
             const close = () => { overlay.remove(); calendar.querySelector(`[data-date="${value}"]`)?.focus(); };
-            const closeButton = button('×', close, 'Đóng danh sách'); heading.appendChild(closeButton);
+            const closeButton = button('🗑', close, 'Đóng danh sách'); heading.appendChild(closeButton);
             panel.appendChild(heading);
             const list = el('div', 'calendar-all-items');
             const renderDetails = () => {
@@ -565,7 +574,7 @@
                 row.append(time, checkbox, window.taskDisplay?.(item, () => { save(); renderDetails(); }) || itemLabel('planner-task-title', item));
                 const actions = el('div', 'day-detail-actions');
                 actions.appendChild(button(calendarText('Sửa', 'Edit'), () => { close(); calendarEditor.edit(item, occurrenceDate); }, calendarText('Sửa công việc', 'Edit task')));
-                actions.appendChild(button('×', () => { item.excludedDates = [...new Set([...(item.excludedDates || []), occurrenceDate])]; save(); renderDetails(); }, 'Bỏ khỏi ngày này'));
+                actions.appendChild(button('🗑', () => { item.excludedDates = [...new Set([...(item.excludedDates || []), occurrenceDate])]; save(); renderDetails(); }, 'Bỏ khỏi ngày này'));
                 row.appendChild(actions);
                 list.appendChild(row);
                 });
@@ -593,6 +602,7 @@
         const sync = () => { state = read(); render(); };
         document.addEventListener('visualmind-preferences', event => { if (event.detail?.language) render(); });
         document.addEventListener('visualmind-dashboard-restored', sync);
+        document.addEventListener('visualmind-dashboard-change', sync);
         window.addEventListener('storage', e => { if (e.storageArea === localStorage && (e.key === key || e.key === null)) sync(); });
         window.addEventListener('pageshow', sync);
         window.addEventListener('focus', sync);

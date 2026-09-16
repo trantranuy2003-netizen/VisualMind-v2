@@ -1310,6 +1310,7 @@
         function updateSelectionCount() {
             const el = document.getElementById('selectionCount');
             const count = selection.selectedIds.length;
+            window.updateMindmapSelectionColors?.();
             if (count > 0) {
                 el.textContent = t('selection-count').replace('{count}', count);
                 el.style.display = 'block';
@@ -1918,7 +1919,10 @@
                 const n = mindmap.nodes[id];
                 if (!n) return;
                 n[prop] = value;
-                if (prop === 'textColor') n.textColorManual = true;
+                if (prop === 'textColor') {
+                    n.textColorManual = true;
+                    n.textStyles = (n.textStyles || []).map(({ textColor, ...style }) => style);
+                }
                 if ((prop === 'text' || prop === 'icon' || prop === 'fontSize' || prop === 'bold' || prop === 'italic' ||
                         prop === 'underline') && !n.isTable) {
                     n.height = measureNodeHeight(n);

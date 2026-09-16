@@ -37,7 +37,11 @@
         function applySelectedTextColor(node, textarea, color) {
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
-            if (start === end) return;
+            if (start === end) {
+                node.textColor = color; node.textColorManual = true;
+                node.textStyles = (node.textStyles || []).map(({ textColor, ...style }) => style);
+                textarea.focus(); render(); return;
+            }
             node.textStyles = (node.textStyles || []).filter((range) => !(range.start === start && range.end === end && range.textColor));
             node.textStyles.push({ start, end, textColor: color });
             textarea.focus();
@@ -147,6 +151,9 @@
                 }
                 if (button.dataset.palette) {
                     paletteTarget = button.dataset.palette;
+                    const colors = paletteTarget === 'text' ? ['#EF4444', '#1E3A8A', '#000000', '#FFFFFF'] : pastelColors;
+                    const names = ['??', 'Xanh d??ng ??m', '?en', 'Tr?ng'];
+                    palette.innerHTML = colors.map((color, index) => `<button type="button" data-pastel="${color}" style="background:${color}" title="${paletteTarget === 'text' ? names[index] : color}" aria-label="${paletteTarget === 'text' ? names[index] : color}"></button>`).join('');
                     more.hidden = true;
                     palette.hidden = false;
                 }
@@ -511,6 +518,17 @@
             closeContextMenu();
 
             if (e.shiftKey && e.button === 0) {
+                const hit = Object.values(mindmap.nodes).find(node => !isNodeHidden(node.id) && worldX >= node.x && worldX <= node.x + node.width && worldY >= node.y && worldY <= node.y + node.height);
+                if (hit) {
+                    const ids = new Set(selection.selectedIds);
+                    if (selection.nodeId) ids.add(selection.nodeId);
+                    if (ids.has(hit.id)) ids.delete(hit.id); else ids.add(hit.id);
+                    selection.selectedIds = [...ids];
+                    selection.nodeId = selection.selectedIds.at(-1) || null;
+                    selection.selectedConnector = null; selection.selectedConnectors = []; selection.selectedLink = null;
+                    if (selection.nodeId) showRightPanel(selection.nodeId);
+                    e.preventDefault(); render(); return;
+                }
                 selection.shiftDown = true;
                 selection.isBoxSelecting = true;
                 selection.boxStart = { x: canvasX, y: canvasY };

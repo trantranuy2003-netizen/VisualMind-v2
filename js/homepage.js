@@ -244,7 +244,7 @@
             <button data-action="down" type="button">↓ ${text('moveDown')}</button>
             <button data-action="make-child" type="button">↳ ${text('makeChild')}</button>
             <button data-action="parent" type="button">↰ ${text('moveParent')}</button>
-            <button class="is-danger" data-action="delete" type="button">× ${text('remove')}</button>`;
+            <button class="is-danger" data-action="delete" type="button">🗑 ${text('remove')}</button>`;
         menu.dataset.nodeId = nodeId;
         document.body.appendChild(menu);
     };

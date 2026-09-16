@@ -6,7 +6,7 @@
         const previous = document.activeElement, overlay = el('div', 'library-dialog-overlay'), panel = el('section', 'library-dialog wheel-dialog');
         panel.setAttribute('role','dialog'); panel.setAttribute('aria-modal','true'); panel.setAttribute('aria-label', literal ? key : t(key));
         const close = () => { overlay.remove(); if (previous?.isConnected) previous.focus(); };
-        const heading = el('header', 'dashboard-panel-heading'); heading.append(el('h3','',literal ? key : t(key)),button('close',close,'×')); panel.append(heading);
+        const heading = el('header', 'dashboard-panel-heading'); heading.append(el('h3','',literal ? key : t(key)),button('close',close,'🗑')); panel.append(heading);
         overlay.append(panel); document.body.append(overlay);
         overlay.onclick = event => { if (event.target === overlay) close(); };
         overlay.onkeydown = event => {
