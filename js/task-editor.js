@@ -135,7 +135,7 @@
     window.showTaskTrash = () => {
         const overlay = document.createElement('div');
         overlay.className = 'library-dialog-overlay';
-        overlay.innerHTML = `<section class="library-dialog task-editor trash-dialog" role="dialog" aria-modal="true" aria-label="Thùng rác"><header class="trash-heading"><span class="trash-heading-icon">${window.taskTrashIcon}</span><div><h3>Thùng rác</h3><p>Khôi phục công việc khi bạn cần.</p></div><button type="button" class="trash-close" data-close aria-label="Đóng thùng rác">🗑</button></header><div class="trash-list" data-trash-list></div></section>`;
+        overlay.innerHTML = `<section class="library-dialog task-editor trash-dialog" role="dialog" aria-modal="true" aria-label="Thùng rác"><header class="trash-heading"><span class="trash-heading-icon">${window.taskTrashIcon}</span><div><h3>Thùng rác</h3><p>Khôi phục công việc khi bạn cần.</p></div><button type="button" class="trash-close" data-close aria-label="Đóng thùng rác">×</button></header><div class="trash-list" data-trash-list></div></section>`;
         const previous = document.activeElement;
         const close = () => { overlay.remove(); previous?.focus(); };
         const render = () => {

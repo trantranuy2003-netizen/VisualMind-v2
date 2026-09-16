@@ -126,8 +126,6 @@
             };
             wheel.categories.forEach(addRow);
             form.append(button('addAxis',()=>addRow({id:crypto.randomUUID(),name:''}).focus(),'+ '+t('addAxis')));
-            for(const category of wheel.archivedCategories||[])form.append(button('restoreAxis',()=>{if(!rows.some(entry=>entry.category.id===category.id))addRow(category);},t('restoreAxis')+': '+categoryName(category)));
-            form.append(el('p','radar-muted',t('axisRemovalNote')));
             const error=el('p','task-editor-error');error.setAttribute('role','alert');form.append(error);
             const submit=button('save',()=>{});submit.type='submit';form.append(submit);
             form.onsubmit=event=>{event.preventDefault();const categories=rows.map(({category,input,color})=>({...category,color:color.value,key:input.value.trim()===categoryName(category)?category.key:undefined,name:input.value.trim()}));
@@ -147,9 +145,17 @@
             wheel.categories.forEach((category,index)=>{
                 const p=point(index,10),labelPoint=point(index,10,185),value=score(wheel,category.id);
                 const hit=shape('circle',{cx:p[0],cy:p[1],r:9,class:'wheel-hit',role:'button',tabindex:0,'aria-label':categoryName(category)+` ${value.actual.toFixed(1)} / 10`});hit.style.fill=categoryColor(category);hit.onclick=()=>detail(category);hit.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();detail(category);}};
-                const label=shape('text',{x:labelPoint[0],y:labelPoint[1],'text-anchor':'middle',class:'wheel-label'});label.textContent=categoryName(category);label.onclick=()=>detail(category);
+                const labelButton=shape('g',{class:'wheel-label-button',role:'button',tabindex:0,'aria-label':categoryName(category)});
+                const border=shape('rect',{class:'wheel-label-border',rx:6});labelButton.append(border);
+                const label=shape('text',{x:labelPoint[0],y:labelPoint[1],'text-anchor':'middle',class:'wheel-label'});label.textContent=categoryName(category);labelButton.append(label);
+                labelButton.onclick=()=>detail(category);
+                labelButton.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();detail(category);}};
             });
             card.append(svg);const legend=el('div','wheel-legend');legend.append(el('span','wheel-target-key',t('target')),el('span','wheel-actual-key',t('actual')));card.append(legend);
+            svg.querySelectorAll('.wheel-label-button').forEach(group=>{
+                const bounds=group.querySelector('text').getBBox(),border=group.querySelector('rect');
+                for(const [key,value]of Object.entries({x:bounds.x-8,y:bounds.y-6,width:bounds.width+16,height:bounds.height+12}))border.setAttribute(key,value);
+            });
         };
         document.addEventListener('visualmind-dashboard-change',render);
         document.addEventListener('visualmind-dashboard-restored',()=>{const migrated=!read().wheel;render();if(migrated)document.dispatchEvent(new CustomEvent('visualmind-dashboard-restored'));});

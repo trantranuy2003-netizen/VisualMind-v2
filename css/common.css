@@ -1,4 +1,4 @@
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700&display=swap');
 
         :root {
             --bg: #EEF1F6;
@@ -93,7 +93,7 @@
         }
 
         body {
-            font-family: 'Inter', 'Noto Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Be Vietnam Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg);
             overflow: hidden;
             color: var(--ink);
@@ -173,7 +173,7 @@
             height: 38px;
             padding: 0 10px;
             color: #F3F3F3;
-            font-family: 'Sora', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             white-space: nowrap;
         }
 
@@ -218,7 +218,7 @@
         .app-nav-brand .hodi-mark {
             position: relative;
             color: #fff;
-            font-family: 'Sora', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             font-size: 0;
             font-weight: 700;
             line-height: 1;
@@ -405,7 +405,7 @@
         }
 
         .sidebar-header .logo-text {
-            font-family: 'Sora', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             font-size: 15px;
             font-weight: 800;
             color: var(--ink);
@@ -500,7 +500,7 @@
             border-radius: 6px;
             font-size: 11px;
             font-weight: 500;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             white-space: nowrap;
             opacity: 0;
             pointer-events: none;
@@ -543,7 +543,7 @@
             font-size: 12px;
             resize: vertical;
             margin-bottom: 6px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             background: var(--input-bg);
             color: var(--ink);
             min-height: 120px;
@@ -565,7 +565,7 @@
             cursor: pointer;
             font-size: 12px;
             font-weight: 600;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             color: var(--ink);
             transition: all 0.15s ease;
             text-align: center;
@@ -636,7 +636,7 @@
             color: var(--ink);
             transition: all 0.15s ease;
             padding: 0 8px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
         }
         .control-btn:hover {
             background: var(--context-hover);
@@ -762,7 +762,7 @@
             border-radius: 6px;
             font-size: 12.5px;
             font-weight: 500;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             color: var(--ink);
             transition: background 0.1s ease;
             display: flex;
@@ -826,7 +826,7 @@
             transition: background 0.25s ease, border-color 0.25s ease;
         }
         .rp-header h3 {
-            font-family: 'Sora', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             font-size: 14px;
             font-weight: 800;
             margin: 0;
@@ -919,7 +919,7 @@
         .node-mini-palette { position: absolute; bottom: calc(100% + 6px); left: 0; display: grid; grid-template-columns: repeat(5, 22px); gap: 4px; padding: 6px; border: 1px solid #E85D04; border-radius: 10px; background: var(--panel-bg); box-shadow: var(--shadow-lift); }
         .node-mini-palette button { width: 22px; min-width: 22px; height: 22px; border: 1px solid rgba(0,0,0,.16); border-radius: 50%; }
         .node-mini-divider { width: 1px; height: 20px; background: var(--card-border); }
-        .node-mini-properties-panel [data-comment] { width: 88px; height: 28px; padding: 4px; border: 1px solid var(--card-border); border-radius: 0; background: var(--input-bg); color: var(--ink); font: 11px 'Inter', sans-serif; resize: none; }
+        .node-mini-properties-panel [data-comment] { width: 88px; height: 28px; padding: 4px; border: 1px solid var(--card-border); border-radius: 0; background: var(--input-bg); color: var(--ink); font: 11px 'Be Vietnam Pro', sans-serif; resize: none; }
 
         .field-label {
             font-size: 10px;
@@ -963,7 +963,7 @@
             border-radius: 9px;
             cursor: pointer;
             font-weight: 700;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             font-size: 12.5px;
             margin-bottom: 6px;
             transition: background .15s ease;
@@ -983,7 +983,7 @@
             border-radius: 9px;
             cursor: pointer;
             font-weight: 700;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             font-size: 12.5px;
             transition: background 0.25s ease, border-color 0.25s ease;
         }
@@ -1013,7 +1013,7 @@
             border: 1px solid var(--input-border);
             border-radius: 8px;
             font-size: 12px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             background: var(--input-bg);
             color: var(--ink);
             transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
@@ -1029,7 +1029,7 @@
             border: 1px solid var(--input-border);
             border-radius: 8px;
             font-size: 12px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             background: var(--input-bg);
             color: var(--ink);
             transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
@@ -1059,7 +1059,7 @@
             cursor: pointer;
             font-size: 12px;
             font-weight: 500;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             color: var(--ink);
             transition: all 0.15s ease;
             min-width: 32px;
@@ -1140,7 +1140,7 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             box-shadow: var(--shadow-lift);
             z-index: 80;
             display: none;
@@ -1154,7 +1154,7 @@
             border: 2px solid var(--accent);
             border-radius: 8px;
             padding: 4px 10px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             font-size: 13px;
             color: var(--ink);
             box-shadow: var(--shadow-lift);
@@ -1192,7 +1192,7 @@
             transition: background 0.25s ease;
         }
         .modal-box h3 {
-            font-family: 'Sora', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             font-size: 16px;
             font-weight: 800;
             color: var(--ink);
@@ -1209,7 +1209,7 @@
             border: 1.5px solid var(--input-border);
             border-radius: 10px;
             font-size: 14px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             background: var(--input-bg);
             color: var(--ink);
             margin-bottom: 16px;
@@ -1232,7 +1232,7 @@
             cursor: pointer;
             font-size: 13px;
             font-weight: 600;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             transition: all 0.15s ease;
             background: var(--panel-bg);
             color: var(--ink);
@@ -1280,7 +1280,7 @@
             border-radius: 12px;
             font-size: 13px;
             font-weight: 500;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             z-index: 5001;
             box-shadow: var(--shadow-lift);
         }
@@ -1299,7 +1299,7 @@
             cursor: pointer;
             font-size: 11px;
             font-weight: 600;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             color: var(--ink-soft);
             transition: all 0.15s ease;
             text-align: center;
@@ -1328,7 +1328,7 @@
             cursor: pointer;
             font-size: 12px;
             font-weight: 600;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif;
             color: var(--ink-soft);
             transition: all 0.15s ease;
             text-align: center;

@@ -81,7 +81,7 @@
             const overlay = el('div', 'library-dialog-overlay calendar-board-overlay');
             const panel = el('section', 'calendar-board'); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', 'Lịch dạng bảng');
             const close = () => { marker.replaceWith(calendar); overlay.remove(); expand.disabled = false; renderCalendar(); previous?.focus(); };
-            const closeButton = button('🗑', close, 'Đóng lịch mở rộng');
+            const closeButton = button('×', close, 'Đóng lịch mở rộng');
             expand.disabled = true;
             panel.append(closeButton, calendar); overlay.appendChild(panel); document.body.appendChild(overlay);
             overlay.onclick = event => { if (event.target === overlay) close(); };
@@ -381,7 +381,7 @@
                 grid.style.setProperty('--all-day-height', '44px');
                 const axis = el('div', 'week-time-axis');
                 axis.appendChild(el('div', 'week-day-heading', calendarText('Giờ', 'Time')));
-                axis.appendChild(el('div', 'week-all-day', calendarText('Cả ngày', 'All day')));
+                axis.appendChild(el('div', 'week-all-day', calendarText('Chưa lên lịch', 'Unscheduled')));
                 const hours = el('div', 'week-hours');
                 for (let hour = 0; hour < 24; hour++) {
                     const tick = el('span', 'week-hour-label', String(hour).padStart(2, '0') + ':00');
@@ -433,17 +433,17 @@
                         eventRow.style.color = W ? W.textColor(categoryColor) : '#000000';
                     }
                     eventRow.addEventListener('dragstart', event => { event.stopPropagation(); event.dataTransfer.setData('application/x-hodi-calendar', JSON.stringify({ id: item.id, date: occurrenceDate, offset: isWeek && entry.start !== null && event.clientY ? (event.clientY - eventRow.getBoundingClientRect().top) / hourHeight * 60 : 0 })); event.dataTransfer.effectAllowed = 'move'; });
-                    eventRow.addEventListener('click', event => event.stopPropagation());
+                    eventRow.addEventListener('click', event => { event.stopPropagation(); if (!event.target.closest('button,input,label')) window.editChecklistTask(item); });
                     const checkLabel = el('label', 'todo-check');
                     const check = el('input'); check.type = 'checkbox'; check.checked = (item.completedDates || []).includes(occurrenceDate); check.setAttribute('aria-label', window.I18n.t('completeTask', {title:item.title}));
                     const box = el('span'); box.setAttribute('aria-hidden', 'true');
                     if (item.kind === 'goal') { checkLabel.classList.add('goal-check'); box.innerHTML = window.goalIcon; }
                     checkLabel.append(check, box); eventRow.classList.toggle('is-completed', check.checked);
                     check.onchange = () => { item.completedDates = (item.completedDates || []).filter(date => date !== occurrenceDate); if (check.checked) item.completedDates.push(occurrenceDate); save(); };
-                    const title = button(item.title, () => calendarEditor.edit(item, occurrenceDate), window.I18n.t('editNamedTask', {title:item.title})); title.className = 'calendar-event-title';
+                    const title = button(item.title, () => window.editChecklistTask(item), window.I18n.t('editNamedTask', {title:item.title})); title.className = 'calendar-event-title';
                     const remove = button('🗑', () => { item.excludedDates = [...new Set([...(item.excludedDates || []), occurrenceDate])]; save(); }, 'Bỏ khỏi ngày này'); remove.className = 'calendar-event-remove';
                     eventRow.append(checkLabel, title, remove);
-                    if (item.fromTime || item.endToTime) eventRow.appendChild(el('span', 'calendar-event-time', [item.fromTime, item.endToTime].filter(Boolean).join('–')));
+                    if (isWeek && (item.fromTime || item.endToTime)) eventRow.appendChild(el('span', 'calendar-event-time', [item.fromTime, item.endToTime].filter(Boolean).join('–')));
                     if (isWeek) {
                         const position = positions.get(entry);
                         if (position) {
@@ -453,29 +453,15 @@
                             eventRow.style.left = (position.lane / position.columns * 100) + '%';
                             eventRow.style.width = (100 / position.columns) + '%';
                             eventRow.dataset.originDate = occurrenceDate;
-                            const moveHandle = button('⠿', () => {}, 'Kéo di chuyển; phím lên/xuống chỉnh 15 phút');
-                            moveHandle.className = 'calendar-move-handle';
-                            moveHandle.onkeydown = event => {
-                                if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
-                                event.preventDefault(); event.stopPropagation();
-                                calendarEditor.changeTime(item, occurrenceDate, occurrenceDate, Math.max(0, Math.min(1425, M.minutes(item.fromTime) + (event.key === 'ArrowDown' ? 15 : -15))), M.duration(item) || 60);
-                            };
-                            moveHandle.onpointerdown = event => {
-                                if (event.button !== 0) return;
-                                eventRow.draggable = false;
-                                const offset = event.clientY - eventRow.getBoundingClientRect().top;
-                                let targetDate = value, start = entry.start, changed = false;
-                                const preview = el('div', 'calendar-selection'); preview.style.pointerEvents = 'none';
-                                const cleanup = () => { preview.remove(); eventRow.draggable = true; eventRow.style.opacity = ''; };
-                                pointerGesture(event, moveHandle, next => {
-                                    const target = document.elementFromPoint(next.clientX, next.clientY)?.closest('[data-timeline-date]');
-                                    if (!target) return;
-                                    changed = true; targetDate = target.dataset.timelineDate;
-                                    start = pointerMinute(target, next.clientY - offset);
-                                    target.appendChild(preview); preview.style.top = start / 60 * hourHeight + 'px'; preview.style.height = (entry.end - entry.start) / 60 * hourHeight + 'px'; preview.textContent = M.time(start); eventRow.style.opacity = '.45';
-                                }, () => { cleanup(); if (changed) { const origin = M.addDays(targetDate, -M.daysBetween(occurrenceDate, value)); calendarEditor.changeTime(item, occurrenceDate, origin, entry.continuesBefore ? M.minutes(item.fromTime) : start, M.duration(item) || 60); } }, cleanup);
-                            };
-                            eventRow.prepend(moveHandle);
+                            eventRow.tabIndex = 0;
+                            eventRow.addEventListener('keydown', event => {
+                                if (event.target !== eventRow) return;
+                                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.editChecklistTask(item); }
+                                if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                                    event.preventDefault(); event.stopPropagation();
+                                    calendarEditor.changeTime(item, occurrenceDate, occurrenceDate, Math.max(0, Math.min(1425, M.minutes(item.fromTime) + (event.key === 'ArrowDown' ? 15 : -15))), M.duration(item) || 60);
+                                }
+                            });
                             eventRow.title = item.title + ' · ' + (item.fromTime || '') + '–' + (item.endToTime || '') + (entry.continuesBefore ? ' · ' + calendarText('Tiếp từ hôm trước', 'Continued from previous day') : '') + (entry.continuesAfter ? ' · ' + calendarText('Tiếp sang hôm sau', 'Continues next day') : '');
                             const resize = button('↕', () => {}, calendarText('Kéo đổi thời lượng; dùng phím mũi tên để chỉnh 15 phút', 'Drag to resize; arrow keys adjust by 15 minutes'));
                             resize.className = 'calendar-resize-handle'; resize.draggable = false;
@@ -546,7 +532,7 @@
             const heading = el('div', 'dashboard-panel-heading');
             const dayTitle = el('h3'); heading.appendChild(dayTitle);
             const close = () => { overlay.remove(); calendar.querySelector(`[data-date="${value}"]`)?.focus(); };
-            const closeButton = button('🗑', close, 'Đóng danh sách'); heading.appendChild(closeButton);
+            const closeButton = button('×', close, 'Đóng danh sách'); heading.appendChild(closeButton);
             panel.appendChild(heading);
             const list = el('div', 'calendar-all-items');
             const renderDetails = () => {
@@ -573,7 +559,7 @@
                 if (entry.continuesBefore || entry.continuesAfter) time.appendChild(el('small', '', entry.continuesBefore ? calendarText('Từ hôm trước', 'From previous day') : calendarText('Sang hôm sau', 'Until next day')));
                 row.append(time, checkbox, window.taskDisplay?.(item, () => { save(); renderDetails(); }) || itemLabel('planner-task-title', item));
                 const actions = el('div', 'day-detail-actions');
-                actions.appendChild(button(calendarText('Sửa', 'Edit'), () => { close(); calendarEditor.edit(item, occurrenceDate); }, calendarText('Sửa công việc', 'Edit task')));
+                actions.appendChild(button(calendarText('Sửa', 'Edit'), () => { close(); window.editChecklistTask(item); }, calendarText('Sửa công việc', 'Edit task')));
                 actions.appendChild(button('🗑', () => { item.excludedDates = [...new Set([...(item.excludedDates || []), occurrenceDate])]; save(); renderDetails(); }, 'Bỏ khỏi ngày này'));
                 row.appendChild(actions);
                 list.appendChild(row);

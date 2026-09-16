@@ -33,7 +33,7 @@ d.querySelector('[data-language-choice="vi"]').click();await new Promise(r=>setT
 d.querySelector('[data-language-choice="en"]').click();await new Promise(r=>setTimeout(r,50));if(!d.querySelector('[data-wheel]').textContent.includes('Wheel of Life'))throw Error('English switch failed');
 w.editChecklistTask(C.all().find(t=>t.id==='task'));form=d.querySelector('.wheel-form');form.elements.start.value=C.today().split('-').reverse().join('/');form.dispatchEvent(new w.Event('submit',{cancelable:true}));
 const calendarTask=[...d.querySelectorAll('.calendar-event-title')].find(n=>n.textContent==='User text');if(!calendarTask)throw Error('Checklist schedule not synced to Calendar');calendarTask.click();
-form=d.querySelector('.calendar-editor');form.elements.title.value='Edited in Calendar';form.dispatchEvent(new w.Event('submit',{cancelable:true}));
+form=d.querySelector('.wheel-form');form.elements.taskName.value='Edited in Calendar';form.dispatchEvent(new w.Event('submit',{cancelable:true}));
 if(!d.querySelector('[data-checklist-group="scheduled"]').textContent.includes('Edited in Calendar'))throw Error('Calendar edit not synced to Checklist');
 drag('task',d.querySelector('[data-checklist-trash] svg'));
 if(!C.all().find(t=>t.id==='task').trashedAt||d.querySelector('[data-checklist-task="task"]'))throw Error('Drop in trash did not remove task');
@@ -49,7 +49,7 @@ form.querySelector('.wheel-axis-row input').value='Renamed axis';form.querySelec
 if(d.querySelectorAll('.wheel-hit').length!==axisCount+1||!d.querySelector('.wheel-chart').textContent.includes('Renamed axis'))throw Error('Radar must update added/renamed axes');
 d.querySelector('.wheel-settings').click();form=d.querySelector('.wheel-form');form.querySelector('.wheel-axis-row button').click();form.dispatchEvent(new w.Event('submit',{cancelable:true}));
 if(d.querySelectorAll('.wheel-hit').length!==axisCount||!w.WheelModel.load().goals.some(item=>item.id===goal.id))throw Error('Remove must update radar and retain goals');
-d.querySelector('.wheel-settings').click();form=d.querySelector('.wheel-form');form.querySelector('[data-ui-key="restoreAxis"]').click();form.dispatchEvent(new w.Event('submit',{cancelable:true}));
+d.querySelector('.wheel-settings').click();form=d.querySelector('.wheel-form');if(form.querySelector('[data-ui-key="restoreAxis"]'))throw Error('Restore category control must be removed');d.querySelector('[data-ui-key="close"]').click();w.WheelModel.save(wheel=>{wheel.categories.push(wheel.archivedCategories.shift());});
 [...d.querySelectorAll('.wheel-hit')].find(n=>n.getAttribute('aria-label').startsWith('Renamed axis')).dispatchEvent(new w.MouseEvent('click'));
 let tree=d.querySelector('.wheel-tree-goal');if(!tree||!tree.querySelector('.wheel-goal-icon svg')||!tree.querySelector('.wheel-task-icon'))throw Error('Goal/task tree icons missing');
 tree.querySelector('[aria-controls]').click();if(!tree.querySelector('.wheel-tree-children').hidden)throw Error('Children must collapse');tree.querySelector('[aria-controls]').click();

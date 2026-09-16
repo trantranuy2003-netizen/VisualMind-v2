@@ -51,7 +51,7 @@ try {
     assert(grid.querySelector('[data-calendar-item="repeat"]'), 'Showing recurring restores series');
     toggle('sleep');
     assert(grid.querySelectorAll('.calendar-sleep').length === 14, 'Overnight sleep is split across each day');
-    event().querySelector('.calendar-move-handle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    event().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     assert(JSON.parse(localStorage.getItem('visualmind-weekly-planner')).items[0].fromTime === '09:15', 'Move handle adjusts by 15 minutes');
     document.querySelector('[aria-label="Mở rộng lịch dạng bảng"]').click();
     assert(document.querySelector('.calendar-board [data-calendar]') === grid, 'Expanded board uses live calendar');

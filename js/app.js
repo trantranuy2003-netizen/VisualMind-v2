@@ -322,9 +322,7 @@
         }
 
         window.copyMindmapAIPrompt = async function() {
-            const prompt = currentLang === 'en'
-                ? `Turn the content below into an import-ready mindmap outline. Return plain text only; no explanation and no Markdown except **...** around branch names.\n\nRules:\n- First line: central topic.\n- Indent every level with exactly 2 spaces.\n- One concise branch per line (maximum 8 words).\n- At most 5 first-level branches and 4 children per branch.\n- Do not use numbered lists, bullets, or tables.\n\nContent to convert:\n[PASTE CONTENT HERE]`
-                : `Hãy chuyển nội dung dưới đây thành dàn ý mindmap có thể nhập trực tiếp. Chỉ trả về văn bản thuần, không giải thích, không Markdown ngoài **...** cho tên nhánh.\n\nQuy tắc:\n- Dòng đầu tiên: chủ đề trung tâm.\n- Mỗi cấp nhánh thụt vào đúng 2 dấu cách.\n- Mỗi nhánh một dòng, ngắn gọn (tối đa 8 từ).\n- Tối đa 5 nhánh cấp 1 và 4 nhánh con mỗi cấp.\n- Không dùng đánh số, dấu gạch đầu dòng hoặc bảng.\n\nNội dung cần chuyển:\n[DÁN NỘI DUNG VÀO ĐÂY]`;
+            const prompt = "Turn the content below into an import-ready mindmap outline in [Language]\n- Write concisely but retain ALL ideas; do not omit important information\n- Each sub-idea should be on its own line, concise, in phrase/short sentence form\n- Return the result inside a single fenced code block (triple backticks).\n- First line: central topic.\n- Indent every level with exactly 2 spaces (do not use tabs or bullet symbols).\n- No explanation before or after the code block.\nContent: [input content]";
             try {
                 await navigator.clipboard.writeText(prompt);
                 showToast(currentLang === 'en' ? 'Prompt copied. Ask an AI, then paste its outline below.' : 'Đã sao chép prompt. Dán vào AI, rồi dán dàn ý trả về ở ô bên dưới.', 'success');
@@ -341,7 +339,7 @@
         // ============ PARSE OUTLINE ============
         function parseOutlineText(text, targetMindmap = null) {
             if (!targetMindmap) targetMindmap = mindmap;
-            const lines = text.split('\n');
+            const lines = text.trim().replace(/^```[^\n]*\n/, '').replace(/\n```\s*$/, '').split('\n');
             const stack = [];
 
             lines.forEach((line) => {
@@ -439,7 +437,7 @@
                     pid = p ? p.parent : null; }
             }
             const fontWeight = isCenter ? '800' : depth === 1 ? '700' : '500';
-            const fontFamily = depth <= 1 ? "'Sora', 'Noto Sans', sans-serif" : "'Inter', 'Noto Sans', sans-serif";
+            const fontFamily = depth <= 1 ? "'Be Vietnam Pro', sans-serif" : "'Be Vietnam Pro', sans-serif";
             const words = buildRichWords(node.text || '', node.bold || false, node.italic || false, node.underline ||
                 false, node.textStyles || []);
             const lines = layoutRichLines(words, width - 14, fontSize, fontFamily, fontWeight);
@@ -900,7 +898,7 @@
                 ctx.lineWidth = 1.2 / viewport.zoom;
                 ctx.stroke();
                 ctx.fillStyle = '#545B75';
-                ctx.font = `700 ${10.5 / viewport.zoom}px 'Inter', sans-serif`;
+                ctx.font = `700 ${10.5 / viewport.zoom}px 'Be Vietnam Pro', sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 const label = node.collapsed ? ('+' + countAllDescendants(node.id)) : '−';
@@ -910,7 +908,7 @@
             const effectiveTextColor = node.textColorManual ? (node.textColor || '#333') : autoContrastColor(fillStyle);
             ctx.fillStyle = effectiveTextColor;
             const fontWeight = isCenter ? '800' : depth === 1 ? '700' : '500';
-            const fontFamily = depth <= 1 ? "'Sora', 'Noto Sans', sans-serif" : "'Inter', 'Noto Sans', sans-serif";
+            const fontFamily = depth <= 1 ? "'Be Vietnam Pro', sans-serif" : "'Be Vietnam Pro', sans-serif";
 
             let textY = y + height / 2;
             const isEditing = inlineEdit?.dataset.nodeId === String(node.id);
@@ -986,7 +984,7 @@
 
             const headerTextColor = node.textColorManual ? (node.textColor || '#333') : autoContrastColor(baseColor);
             ctx.fillStyle = headerTextColor;
-            ctx.font = `700 ${node.fontSize + 1}px 'Sora', sans-serif`;
+            ctx.font = `700 ${node.fontSize + 1}px 'Be Vietnam Pro', sans-serif`;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             const label = (icon ? icon + ' ' : '') + text;
@@ -1018,7 +1016,7 @@
 
             ctx.fillStyle = '#2B2E3A';
             const cellFont = Math.max(10, node.fontSize - 1);
-            ctx.font = `${cellFont}px 'Inter', sans-serif`;
+            ctx.font = `${cellFont}px 'Be Vietnam Pro', sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             for (let r = 0; r < rows; r++) {
@@ -1310,7 +1308,6 @@
         function updateSelectionCount() {
             const el = document.getElementById('selectionCount');
             const count = selection.selectedIds.length;
-            window.updateMindmapSelectionColors?.();
             if (count > 0) {
                 el.textContent = t('selection-count').replace('{count}', count);
                 el.style.display = 'block';
@@ -1382,6 +1379,7 @@
         });
 
         function undo() {
+            if (typeof closeContextMenu === 'function') closeContextMenu();
             if (typeof closeInlineEdit === 'function') closeInlineEdit();
             if (historyIndex > 0) { historyIndex--;
                 mindmap = JSON.parse(JSON.stringify(history[historyIndex]));
@@ -1392,6 +1390,7 @@
         }
 
         function redo() {
+            if (typeof closeContextMenu === 'function') closeContextMenu();
             if (typeof closeInlineEdit === 'function') closeInlineEdit();
             if (historyIndex < history.length - 1) { historyIndex++;
                 mindmap = JSON.parse(JSON.stringify(history[historyIndex]));
@@ -1768,7 +1767,7 @@
             input.type = 'text';
             input.value = node.tableData[row][col] || '';
             input.style.cssText =
-                `position:fixed; left:${screenX}px; top:${screenY}px; width:${screenW}px; height:${screenH}px; z-index:1000; border:2px solid var(--accent); border-radius:4px; padding:2px 6px; font-size:12px; font-family:'Inter',sans-serif; text-align:center; box-shadow:0 4px 20px rgba(31,37,68,0.2); background:var(--panel-bg); color:var(--ink);`;
+                `position:fixed; left:${screenX}px; top:${screenY}px; width:${screenW}px; height:${screenH}px; z-index:1000; border:2px solid var(--accent); border-radius:4px; padding:2px 6px; font-size:12px; font-family:'Be Vietnam Pro',sans-serif; text-align:center; box-shadow:0 4px 20px rgba(31,37,68,0.2); background:var(--panel-bg); color:var(--ink);`;
             document.body.appendChild(input);
             tableCellEdit = input;
             input.focus();

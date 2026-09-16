@@ -10,7 +10,7 @@
     --home-bg:var(--ui-bg); --home-surface:var(--ui-surface); --home-surface-hover:var(--ui-hover); --home-border:var(--ui-border); --home-text:var(--ui-text); --home-muted:var(--ui-muted); --home-orange:var(--ui-accent); --home-orange-bright:var(--ui-accent);
     --bg:var(--ui-bg); --ink:var(--ui-text); --ink-soft:var(--ui-muted); --accent:var(--ui-accent); --card-border:var(--ui-border); --panel-bg:var(--ui-surface); --panel-header-bg:var(--ui-hover); --input-bg:var(--ui-surface); --input-border:var(--ui-border); --context-bg:var(--ui-surface); --context-hover:var(--ui-hover); --tooltip-bg:var(--ui-surface); --canvas-bg:var(--ui-bg); --grid-dot:var(--ui-border);
 }
-body, button, input, select, textarea { font-family:Inter,'Noto Sans','Segoe UI',sans-serif; }
+body, button, input, select, textarea { font-family:'Be Vietnam Pro','Segoe UI',sans-serif; }
 .home-header, .home-search input, .home-search button, .home-login, .auth-menu,
 .library-dialog, .planner-button, .todo-panel, .eisenhower-panel, .library-context-menu {
     background:var(--ui-surface); color:var(--ui-text); border-color:var(--ui-border);
@@ -24,6 +24,9 @@ body, button, input, select, textarea { font-family:Inter,'Noto Sans','Segoe UI'
 .planner-button, .home-login, .home-search input, .home-search button { border-radius:var(--ui-radius); }
 .is-primary, .library-dialog button.is-primary { background:var(--ui-accent); color:#fff; }
 :focus-visible { outline:2px solid var(--ui-accent); outline-offset:3px; }
+.app-nav-sidebar .library-node-name { white-space:normal; overflow-wrap:anywhere; text-overflow:clip; line-height:1.5; }
+.app-nav-sidebar .library-node { height:auto; min-height:34px; }
+.is-week-view .calendar-event-time { font-style:italic; }
 .matrix-cell { background:var(--ui-bg); border-radius:var(--ui-radius); }
 .matrix-do { border-top:2px solid var(--ui-accent); }
 .matrix-label b { color:var(--ui-accent); }

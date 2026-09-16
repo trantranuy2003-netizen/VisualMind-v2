@@ -179,6 +179,63 @@
             document.addEventListener('mousedown', closePopups);
             return panel;
         }
+        function openBatchEditBar(event) {
+            const node = mindmap.nodes[selection.selectedIds[0]];
+            if (!node) return;
+            const panel = createMiniEditPropertiesPanel(node, document.createElement('textarea'), event.clientX, event.clientY + 44, 0);
+            panel.classList.add('node-batch-edit-bar');
+            panel.setAttribute('role', 'toolbar');
+            panel.setAttribute('aria-label', `${selection.selectedIds.length} nodes`);
+            contextMenu = panel;
+            panel.addEventListener('click', event => {
+                event.stopPropagation();
+            });
+            panel.addEventListener('click', event => {
+                const button = event.target.closest('button');
+                if (!button) return;
+                let prop, value;
+                if (button.dataset.palette) panel.dataset.target = button.dataset.palette;
+                if (button.dataset.pastel) {
+                    prop = panel.dataset.target === 'text' ? 'textColor' : 'color';
+                    value = button.dataset.pastel;
+                } else if (button.dataset.format) {
+                    prop = {'**':'bold','__':'italic','++':'underline','~~':'strike','==':'highlight'}[button.dataset.format];
+                    if (prop === 'strike' || prop === 'highlight') {
+                        const enabled = !selection.selectedIds.every(id => mindmap.nodes[id].textStyles?.some(range => range.start === 0 && range.end === mindmap.nodes[id].text.length && range[prop]));
+                        selection.selectedIds.forEach(id => {
+                            const target = mindmap.nodes[id];
+                            target.textStyles = (target.textStyles || []).map(range => { const copy = {...range}; delete copy[prop]; return copy; });
+                            if (enabled) target.textStyles.push({start:0,end:target.text.length,[prop]:true});
+                        });
+                        saveHistory(); render(); event.stopImmediatePropagation(); return;
+                    }
+                    value = !selection.selectedIds.every(id => mindmap.nodes[id]?.[prop]);
+                } else if (button.dataset.align) { prop = 'textAlign'; value = button.dataset.align; }
+                else if (button.dataset.font) {
+                    selection.selectedIds.forEach(id => {
+                        const target = mindmap.nodes[id];
+                        target.fontSize = Math.max(8, Math.min(32, target.fontSize + (button.dataset.font === '+' ? 1 : -1)));
+                        if (!target.isTable) target.height = measureNodeHeight(target);
+                    });
+                    saveHistory(); render();
+                    event.stopImmediatePropagation(); return;
+                } else if (button.hasAttribute('data-bullet')) {
+                    event.stopImmediatePropagation(); return;
+                }
+                if (!prop) return;
+                event.stopImmediatePropagation();
+                updateNodeProperty(node.id, prop, value);
+                panel.querySelector('.node-mini-palette').hidden = true;
+                if (prop === 'color') panel.querySelector('[data-palette="fill"]').style.setProperty('--swatch', value);
+                if (prop === 'textColor') panel.querySelector('[data-palette="text"]').style.color = value;
+            }, true);
+            panel.querySelector('[data-bullet]').remove();
+            panel.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation(); closeContextMenu(); canvas.focus(); } });
+            const bounds = panel.getBoundingClientRect();
+            panel.style.left = `${Math.max(8, Math.min(event.clientX, window.innerWidth - bounds.width - 8))}px`;
+            panel.style.top = `${Math.max(100, Math.min(event.clientY, window.innerHeight - bounds.height - 8))}px`;
+        }
+
         function startInlineEdit(nodeId) {
             closeInlineEdit();
             if (tableCellEdit) { tableCellEdit.remove();
@@ -508,6 +565,7 @@
         }
 
         function handleMouseDown(e) {
+            if (e.button === 2) return;
             const rect = canvas.getBoundingClientRect();
             const canvasX = e.clientX - rect.left;
             const canvasY = e.clientY - rect.top;
@@ -849,6 +907,10 @@
             e.preventDefault();
             closeContextMenu();
             closeInlineEdit();
+            if (selection.selectedIds.length > 1) {
+                openBatchEditBar(e);
+                return;
+            }
 
             const rect = canvas.getBoundingClientRect();
             const canvasX = e.clientX - rect.left;

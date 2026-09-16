@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><pre id="result">RUNNING</pre><iframe></iframe>
+<script>
+localStorage.setItem('visualmind-language','en');
+localStorage.setItem('visualmind-weekly-planner',JSON.stringify({items:[],recurring:[]}));
+localStorage.setItem('visualmind-eisenhower-tasks','[]');
+const frame=document.querySelector('iframe');
+frame.onload=()=>{try{
+ const w=frame.contentWindow,d=w.document,assert=(v,m)=>{if(!v)throw Error(m);};
+ w.editChecklistTask();let form=d.querySelector('.wheel-form');
+ assert(form.elements.pointsPerDone.value==='1','New tasks default to one point');
+ assert(form.querySelectorAll('.task-native-picker[type=time]').length===2,'Time pickers');
+ assert(form.querySelectorAll('.task-native-picker[type=date]').length===2,'Date pickers');
+ form.elements.taskName.value='Flexible input';form.elements.fromTime.value='9:5';form.elements.endToTime.value='10';form.elements.start.value='1/2/2026';form.elements.end.value='1/2/2026';form.requestSubmit();
+ let task=w.ChecklistModel.all().find(t=>t.title==='Flexible input');
+ assert(task&&task.fromTime==='09:05'&&task.endToTime==='10:00'&&task.fromDate==='2026-02-01','Loose input normalized');
+ w.editChecklistTask(task);form=d.querySelector('.wheel-form');
+ const date=form.querySelector('.task-native-picker[type=date]');date.value=w.ChecklistModel.today();date.dispatchEvent(new w.Event('change'));
+ assert(form.elements.start.value===date.value.split('-').reverse().join('/'),'Calendar picker updates date');
+ form.elements.end.value=form.elements.start.value;
+ const time=form.querySelector('.task-native-picker[type=time]');time.value='08:30';time.dispatchEvent(new w.Event('change'));
+ assert(form.elements.fromTime.value==='08:30','Clock picker updates time');
+ form.requestSubmit();
+ assert(d.querySelector('.calendar-event'),'Task on month calendar');
+ d.querySelector('.calendar-event').click();
+ assert(d.querySelector('.wheel-form [name=taskName]'),'Calendar click opens shared task editor');
+ d.querySelector('[data-ui-key=close]').click();
+ assert(w.getComputedStyle(d.body).fontFamily.includes('Be Vietnam Pro'),'Vietnamese font configured');
+
+ assert(!d.querySelector('.calendar-event-time'),'Month hides schedule details');
+ assert(d.querySelectorAll('.wheel-label-button[tabindex="0"] rect').length===w.WheelModel.load().categories.length,'Wheel names have clickable borders');
+ w.WheelUI.settings();
+ assert(d.querySelector('[data-ui-key=addAxis]').textContent.includes('Add categorise'),'Category action label');
+ assert(!d.querySelector('[data-ui-key=restoreAxis]'),'No restore action');
+ assert(!d.querySelector('.wheel-form').textContent.includes('Removing an axis'),'No removal note');
+ assert(d.querySelector('[data-ui-key=close]').textContent==='×','Close is a cross');
+ assert(!w.testErrors.length,w.testErrors.join('; '));
+ document.querySelector('#result').textContent='PASS: flexible date/time, native pickers, default points, month labels, categories, close icon and wheel labels.';
+}catch(e){document.querySelector('#result').textContent='FAIL: '+e.stack;}};
+frame.src='../index.html?test=1';
+</script>

@@ -4,9 +4,30 @@
     const formatDate = value => value ? value.split('-').reverse().join('/') : '';
     const parseDate = value => {
         if (!value.trim()) return '';
-        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
-        const iso=value.split('/').reverse().join('-');
+        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value.trim())) return null;
+        const iso=value.trim().split('/').reverse().map(part=>part.padStart(2,'0')).join('-');
         return window.CalendarModel.key(window.CalendarModel.day(iso))===iso ? iso : null;
+    };
+    const parseTime = value => {
+        value=value.trim();
+        if (!value) return '';
+        const match=value.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+        if (!match || Number(match[1])>23 || Number(match[2] || 0)>59) return null;
+        return match[1].padStart(2,'0')+':'+(match[2] || '0').padStart(2,'0');
+    };
+    const attachPicker = (input,type,parse,format) => {
+        const label=input.parentElement, wrap=el('div','task-picker-field');
+        label.append(wrap); wrap.append(input);
+        const picker=el('input','task-native-picker');picker.type=type;picker.tabIndex=-1;
+        picker.setAttribute('aria-label',t(type==='time'?'chooseTime':'chooseDate'));
+        const open=button(type==='time'?'chooseTime':'chooseDate',()=>{
+            picker.value=parse(input.value) || '';
+            if (picker.showPicker) { try { picker.showPicker(); } catch { picker.focus(); } }
+            else picker.focus();
+        },type==='time'?'◷':'▦');
+        open.classList.add('task-picker-open');wrap.append(open,picker);
+        picker.addEventListener('change',()=>{input.value=format(picker.value);});
+        input.addEventListener('blur',()=>{const value=parse(input.value);if(value!==null)input.value=format(value);});
     };
     window.editChecklistTask = (existing = null, additions = {}, after = () => {}) => dialog(existing ? 'editTask' : 'addTask', (panel,close) => {
         const task = existing || additions, form = el('form','wheel-form'); panel.append(form);
@@ -15,8 +36,10 @@
         const makeEndpoint=(label,timeName,dateName,timeValue,dateValue)=>{
             const group=el('fieldset','checklist-endpoint');group.append(el('legend','',t(label)));
             const inputs=el('div','checklist-endpoint-inputs');group.append(inputs);schedule.append(group);
-            const time=field(inputs,timeName,'text',timeValue);time.placeholder='HH:MM';time.pattern='([01][0-9]|2[0-3]):[0-5][0-9]';time.maxLength=5;time.inputMode='numeric';
+            const time=field(inputs,timeName,'text',timeValue);time.placeholder='HH:MM';time.maxLength=5;time.inputMode='text';
             const date=field(inputs,dateName,'text',formatDate(dateValue));date.placeholder='dd/mm/yyyy';date.maxLength=10;date.inputMode='numeric';
+            attachPicker(time,'time',parseTime,value=>value);
+            attachPicker(date,'date',parseDate,formatDate);
             return {time,date};
         };
         const initialDate=task.start || task.fromDate || task.dates?.[0] || '';
@@ -43,10 +66,11 @@
         form.onsubmit=event=>{
             event.preventDefault(); if (!title.value.trim()) return;
             const fromDate=parseDate(first.date.value), toDate=parseDate(last.date.value);
-            const fromTime=first.time.value.trim(), endTime=last.time.value.trim();
+            const fromTime=parseTime(first.time.value), endTime=parseTime(last.time.value);
             const repeat=recurrenceChanged || !existing ? (selectedDays.size?'weekly':'') : task.repeat || '';
             const repeatDays=[...selectedDays];
             if(fromDate===null || toDate===null){error.textContent=t('dateFormatError');return;}
+            if(fromTime===null || endTime===null){error.textContent=t('invalidField');return;}
             const M=window.CalendarModel, startMinutes=M.minutes(fromTime), endMinutes=M.minutes(endTime);
             if((fromTime&&startMinutes===null)||(endTime&&endMinutes===null)){error.textContent=t('invalidField');return;}
             if(fromDate&&toDate&&toDate<fromDate){error.textContent=t('invalidRange');return;}

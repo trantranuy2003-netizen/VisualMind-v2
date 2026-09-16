@@ -44,7 +44,7 @@
             const header = element('header', 'radar-dialog-heading');
             let cleanup;
             const close = () => { cleanup?.(); overlay.remove(); if (previous?.isConnected) previous.focus(); };
-            const closeButton = button('🗑', close, 'Đóng'); header.append(element('h3', '', title), closeButton);
+            const closeButton = button('×', close, 'Đóng'); header.append(element('h3', '', title), closeButton);
             panel.append(header); overlay.append(panel); document.body.appendChild(overlay);
             overlay.onclick = event => { if (event.target === overlay) close(); };
             overlay.onkeydown = event => {

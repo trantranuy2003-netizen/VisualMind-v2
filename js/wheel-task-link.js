@@ -27,7 +27,7 @@
         let automaticWeight=task.wheelWeight == null;
         weight.addEventListener('input',()=>{automaticWeight=false;});
         const remainingWeight=id=>Math.max(0,100-C.all().filter(item=>!item.trashedAt&&!item.seriesId&&item.wheelGoalId===id&&item.id!==task.id).reduce((sum,item)=>sum+Number(item.wheelWeight||0),0));
-        const points=field(scoring,'pointsPerDone','number',W.pointsPerDone(task));points.min=0;points.max=10;points.step='any';
+        const points=field(scoring,'pointsPerDone','number',task.id ? W.pointsPerDone(task) : (task.wheelPoints ?? 1));points.min=0;points.max=10;points.step='any';
         const options=(input,items,selected)=>{input.replaceChildren();const none=el('option','',t('noSelection'));none.value='';input.append(none);for(const item of items){const option=el('option','',item.name);option.value=item.id;option.dataset.userContent='';input.append(option);}input.value=items.some(item=>item.id===selected)?selected:'';};
         const refresh=()=>{
             const wheel=W.load();
